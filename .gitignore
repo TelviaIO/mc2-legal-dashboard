@@ -118,3 +118,4 @@ dist
 
 # OSX
 .DS_Store
+.github_token
