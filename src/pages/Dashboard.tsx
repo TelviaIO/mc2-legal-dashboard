@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import DashboardLayout from '../layout/DashboardLayout';
 import { supabase } from '../lib/supabase';
 import { mockCalls, mockStats, mockChartData } from '../data/mockData';
@@ -16,24 +16,64 @@ interface Call {
 
 interface ChartDataPoint {
     name: string;
-    calls: number;
-    answered: number;
+    value: number;
 }
 
-const KPICard = ({ title, value, type = 'text' }: { title: string, value: string | number, type?: 'money' | 'text' }) => (
-    <div style={{
-        background: 'var(--card-bg)',
-        padding: '1.5rem',
-        borderRadius: '12px',
-        border: '1px solid var(--border-color)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0.5rem'
-    }}>
+type TimeFilter = 'day' | 'week' | 'month' | 'custom';
+type MetricType = 'calls' | 'answered' | 'cost';
+
+// Components
+
+const KPICard = ({
+    title,
+    value,
+    subValue,
+    type = 'text',
+    isActive,
+    onClick
+}: {
+    title: string,
+    value: string | number,
+    subValue?: string, // e.g. "15% vs last week" or "50 of 100"
+    type?: 'money' | 'text',
+    isActive: boolean,
+    onClick: () => void
+}) => (
+    <div
+        onClick={onClick}
+        style={{
+            background: isActive ? 'linear-gradient(145deg, #1e1e1e, #121212)' : 'var(--card-bg)',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            border: isActive ? '1px solid #8e2de2' : '1px solid var(--border-color)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            position: 'relative',
+            overflow: 'hidden'
+        }}
+    >
+        {isActive && (
+            <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '4px',
+                background: 'var(--primary-gradient)'
+            }} />
+        )}
         <h3 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 500 }}>{title}</h3>
         <p className="text-gradient" style={{ fontSize: '2.5rem', fontWeight: 700, lineHeight: 1 }}>
             {type === 'money' ? `${typeof value === 'number' ? value.toFixed(2) : value}€` : value}
         </p>
+        {subValue && (
+            <p style={{ fontSize: '0.85rem', color: '#666', marginTop: '0.2rem' }}>
+                {subValue}
+            </p>
+        )}
     </div>
 );
 
@@ -66,7 +106,8 @@ const AudioPlayer = ({ url }: { url: string }) => {
                 padding: '0.3rem 0.8rem',
                 fontSize: '0.8rem',
                 background: playing ? 'var(--primary-gradient)' : '#2a2a2a',
-                border: 'none'
+                border: 'none',
+                borderRadius: '20px'
             }}
         >
             {playing ? 'Pausar' : 'Reproducir'}
@@ -74,13 +115,165 @@ const AudioPlayer = ({ url }: { url: string }) => {
     );
 };
 
+// Chat Component
+interface Message {
+    id: string;
+    sender: 'user' | 'agency';
+    text: string;
+    date: string;
+}
+
+const ChatSection = () => {
+    const [messages, setMessages] = useState<Message[]>([
+        { id: '1', sender: 'agency', text: 'Bienvenido a MC2 Legal. ¿En qué podemos ayudarte hoy?', date: new Date().toISOString() }
+    ]);
+    const [input, setInput] = useState('');
+
+    const handleSend = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!input.trim()) return;
+
+        const newMessage: Message = {
+            id: Date.now().toString(),
+            sender: 'user',
+            text: input,
+            date: new Date().toISOString()
+        };
+
+        setMessages([...messages, newMessage]);
+        setInput('');
+
+        // Simular respuesta
+        setTimeout(() => {
+            setMessages(prev => [...prev, {
+                id: (Date.now() + 1).toString(),
+                sender: 'agency',
+                text: 'Gracias por tu feedback. Lo revisaremos pronto.',
+                date: new Date().toISOString()
+            }]);
+        }, 1000);
+    };
+
+    return (
+        <div style={{
+            background: 'var(--card-bg)',
+            borderRadius: '12px',
+            border: '1px solid var(--border-color)',
+            display: 'flex',
+            flexDirection: 'column',
+            height: '400px',
+            overflow: 'hidden'
+        }}>
+            <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', background: '#1a1a1a' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>Feedback Agencia - Cliente</h3>
+            </div>
+
+            <div style={{ flex: 1, padding: '1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                {messages.map(msg => (
+                    <div key={msg.id} style={{
+                        alignSelf: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                        maxWidth: '80%',
+                        background: msg.sender === 'user' ? 'var(--primary-gradient)' : '#2a2a2a',
+                        color: 'white',
+                        padding: '0.8rem 1rem',
+                        borderRadius: '12px',
+                        borderBottomRightRadius: msg.sender === 'user' ? '2px' : '12px',
+                        borderBottomLeftRadius: msg.sender === 'agency' ? '2px' : '12px',
+                        fontSize: '0.9rem'
+                    }}>
+                        <p>{msg.text}</p>
+                        <span style={{ fontSize: '0.7rem', opacity: 0.7, marginTop: '0.4rem', display: 'block' }}>
+                            {new Date(msg.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                    </div>
+                ))}
+            </div>
+
+            <form onSubmit={handleSend} style={{ padding: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '0.5rem' }}>
+                <input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Escribe un mensaje..."
+                    style={{
+                        flex: 1,
+                        padding: '0.8rem',
+                        borderRadius: '8px',
+                        background: '#0a0a0a',
+                        border: '1px solid var(--border-color)',
+                        color: 'white',
+                        outline: 'none'
+                    }}
+                />
+                <button type="submit" className="bg-gradient" style={{ borderRadius: '8px' }}>Enviar</button>
+            </form>
+        </div>
+    );
+};
+
+// Documents Component
+const DocumentsSection = () => (
+    <div style={{
+        background: 'var(--card-bg)',
+        padding: '1.5rem',
+        borderRadius: '12px',
+        border: '1px solid var(--border-color)',
+        height: '400px'
+    }}>
+        <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>Documentos Importantes</h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+            Recursos y guías para tu agente.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+            <a href="#" style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.8rem',
+                padding: '1rem',
+                background: '#1a1a1a',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)',
+                textDecoration: 'none',
+                color: 'white',
+                transition: 'background 0.2s'
+            }}>
+                <div style={{ width: '30px', height: '30px', background: 'var(--primary-gradient)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold' }}>PDF</div>
+                <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>Guía de Estilo.pdf</div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Subido el 20 Ene</div>
+                </div>
+            </a>
+
+            <button style={{
+                marginTop: '1rem',
+                background: 'transparent',
+                border: '1px dashed var(--text-secondary)',
+                color: 'var(--text-secondary)',
+                padding: '2rem',
+                fontSize: '0.9rem'
+            }}>
+                + Subir nuevo documento
+            </button>
+        </div>
+    </div>
+);
+
+
 const Dashboard: React.FC = () => {
-    const [feedback, setFeedback] = useState('');
-    const [calls, setCalls] = useState<Call[]>([]);
-    const [stats, setStats] = useState({ totalCalls: 0, answeredCalls: 0, totalCost: 0 });
-    const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
+    // Data State
+    const [allCalls, setAllCalls] = useState<Call[]>([]);
+    const [filteredCalls, setFilteredCalls] = useState<Call[]>([]);
     const [loading, setLoading] = useState(true);
 
+    // Filter State
+    const [timeFilter, setTimeFilter] = useState<TimeFilter>('week');
+    const [customStart, setCustomStart] = useState('');
+    const [customEnd, setCustomEnd] = useState('');
+
+    // UI State
+    const [selectedMetric, setSelectedMetric] = useState<MetricType>('calls');
+
+    // Load Data
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -89,70 +282,144 @@ const Dashboard: React.FC = () => {
                     .select('*')
                     .order('created_at', { ascending: false });
 
-                if (error) throw error;
-
                 if (data && data.length > 0) {
-                    // Process Real Data
-                    // Map to internal format if needed, but we can use db columns directly if we update UI to use them
-                    setCalls(data as Call[]);
-
-                    // Calculate Stats
-                    const totalCalls = data.length;
-                    const answeredCalls = data.filter(c => c.t_status === 'completed').length;
-                    const totalCost = data.reduce((acc, curr) => acc + (curr.n_cost || 0), 0);
-                    setStats({ totalCalls, answeredCalls, totalCost });
-
-                    // Calculate Chart Data (Simplified logic: Group by day, assume recent data)
-                    // For now, we will just use mock chart data if not enough real data, 
-                    // or we can build a proper aggregation function. 
-                    // Let's stick to mockChartData for the graph in this MVP step unless we have real timestamps clustering.
-                    setChartData(mockChartData);
+                    setAllCalls(data as Call[]);
                 } else {
-                    // Fallback to Mock Data
-                    loadMockData();
+                    // Transform Mock Data
+                    const mappedMockCalls = mockCalls.map(c => ({
+                        id: c.id,
+                        created_at: new Date().toISOString(), // Use recent date for mock
+                        t_duration: c.duration,
+                        t_status: c.status,
+                        n_cost: c.cost,
+                        t_recording_url: c.recordingUrl
+                    } as Call));
+                    setAllCalls(mappedMockCalls);
                 }
             } catch (err) {
-                console.error('Error fetching data, using mocks:', err);
-                loadMockData();
+                console.error('Error fetching data:', err);
             } finally {
                 setLoading(false);
             }
         };
-
-        const loadMockData = () => {
-            // Transform Mock Data to align with DB schema for Types
-            const mappedMockCalls = mockCalls.map(c => ({
-                id: c.id,
-                created_at: c.date, // Note: Mock date format isn't ISO, might need parsing for real usage
-                t_duration: c.duration,
-                t_status: c.status,
-                n_cost: c.cost,
-                t_recording_url: c.recordingUrl
-            } as Call));
-
-            setCalls(mappedMockCalls);
-            setStats(mockStats);
-            setChartData(mockChartData);
-        };
-
         fetchData();
     }, []);
 
-    const handleFeedbackSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        alert('Mensaje enviado a la agencia (Simulación)');
-        setFeedback('');
-    };
+    // Filter Logic
+    useEffect(() => {
+        const now = new Date();
+        let start = new Date();
+
+        if (timeFilter === 'day') {
+            start.setHours(0, 0, 0, 0);
+        } else if (timeFilter === 'week') {
+            start.setDate(now.getDate() - 7);
+        } else if (timeFilter === 'month') {
+            start.setMonth(now.getMonth() - 1);
+        } else if (timeFilter === 'custom' && customStart) {
+            start = new Date(customStart);
+        }
+
+        const filtered = allCalls.filter(c => {
+            const callDate = new Date(c.created_at);
+            if (timeFilter === 'custom' && customEnd) {
+                const end = new Date(customEnd);
+                end.setHours(23, 59, 59, 999);
+                return callDate >= start && callDate <= end;
+            }
+            return callDate >= start;
+        });
+
+        setFilteredCalls(filtered);
+    }, [allCalls, timeFilter, customStart, customEnd]);
+
+    // KPIs & Chart Data Calculation
+    const stats = useMemo(() => {
+        const totalCalls = filteredCalls.length;
+        const answeredCalls = filteredCalls.filter(c => c.t_status === 'completed').length;
+        const totalCost = filteredCalls.reduce((acc, curr) => acc + (curr.n_cost || 0), 0);
+
+        return { totalCalls, answeredCalls, totalCost };
+    }, [filteredCalls]);
+
+    const chartData = useMemo(() => {
+        // Group by Day (or Hour if 'day' filter)
+        const grouped: Record<string, number> = {};
+
+        filteredCalls.forEach(call => {
+            const d = new Date(call.created_at);
+            let key = d.toLocaleDateString(); // Default Day
+            if (timeFilter === 'day') key = d.getHours() + ':00'; // Hourly for Day
+
+            let val = 0;
+            if (selectedMetric === 'calls') val = 1;
+            if (selectedMetric === 'answered') val = call.t_status === 'completed' ? 1 : 0;
+            if (selectedMetric === 'cost') val = call.n_cost || 0;
+
+            grouped[key] = (grouped[key] || 0) + val;
+        });
+
+        return Object.entries(grouped).map(([name, value]) => ({ name, value }));
+    }, [filteredCalls, selectedMetric, timeFilter]);
+
 
     return (
         <DashboardLayout>
             <div style={{ display: 'grid', gap: '2rem' }}>
 
+                {/* Header & Filters */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                    <h2 className="text-gradient" style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Panel de Control</h2>
+
+                    <div style={{ display: 'flex', gap: '0.5rem', background: '#1a1a1a', padding: '0.3rem', borderRadius: '8px' }}>
+                        {(['day', 'week', 'month', 'custom'] as const).map(f => (
+                            <button
+                                key={f}
+                                onClick={() => setTimeFilter(f)}
+                                style={{
+                                    background: timeFilter === f ? 'var(--primary-gradient)' : 'transparent',
+                                    color: 'white',
+                                    border: 'none',
+                                    padding: '0.4rem 1rem',
+                                    borderRadius: '6px',
+                                    fontSize: '0.9rem'
+                                }}
+                            >
+                                {f === 'day' ? 'Hoy' : f === 'week' ? 'Semana' : f === 'month' ? 'Mes' : 'Personalizado'}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+
+                {timeFilter === 'custom' && (
+                    <div style={{ display: 'flex', gap: '1rem', marginTop: '-1rem' }}>
+                        <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', background: '#111', border: '1px solid #333', color: 'white' }} />
+                        <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', background: '#111', border: '1px solid #333', color: 'white' }} />
+                    </div>
+                )}
+
                 {/* KPI Section */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
-                    <KPICard title="Llamadas Totales" value={loading ? '...' : stats.totalCalls} />
-                    <KPICard title="Llamadas Contestadas" value={loading ? '...' : stats.answeredCalls} />
-                    <KPICard title="Gasto" value={loading ? '...' : stats.totalCost} type="money" />
+                    <KPICard
+                        title="Llamadas Totales"
+                        value={stats.totalCalls}
+                        isActive={selectedMetric === 'calls'}
+                        onClick={() => setSelectedMetric('calls')}
+                    />
+                    <KPICard
+                        title="Llamadas Contestadas"
+                        value={stats.answeredCalls}
+                        subValue={`${stats.totalCalls > 0 ? ((stats.answeredCalls / stats.totalCalls) * 100).toFixed(0) : 0}% de retención`}
+                        isActive={selectedMetric === 'answered'}
+                        onClick={() => setSelectedMetric('answered')}
+                    />
+                    <KPICard
+                        title="Gasto"
+                        value={stats.totalCost}
+                        type="money"
+                        isActive={selectedMetric === 'cost'}
+                        onClick={() => setSelectedMetric('cost')}
+                    />
                 </div>
 
                 {/* Chart Section */}
@@ -161,14 +428,16 @@ const Dashboard: React.FC = () => {
                     padding: '1.5rem',
                     borderRadius: '12px',
                     border: '1px solid var(--border-color)',
-                    minHeight: '300px'
+                    minHeight: '350px'
                 }}>
-                    <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem', fontWeight: 600 }}>Rendimiento Semanal</h3>
+                    <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem', fontWeight: 600 }}>
+                        Gráfica de {selectedMetric === 'calls' ? 'Volumen' : selectedMetric === 'answered' ? 'Respuestas' : 'Gasto'}
+                    </h3>
                     <div style={{ height: '300px', width: '100%' }}>
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={chartData}>
                                 <defs>
-                                    <linearGradient id="colorCalls" x1="0" y1="0" x2="0" y2="1">
+                                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                                         <stop offset="5%" stopColor="#8e2de2" stopOpacity={0.3} />
                                         <stop offset="95%" stopColor="#8e2de2" stopOpacity={0} />
                                     </linearGradient>
@@ -182,15 +451,21 @@ const Dashboard: React.FC = () => {
                                 />
                                 <Area
                                     type="monotone"
-                                    dataKey="calls"
+                                    dataKey="value"
                                     stroke="#8e2de2"
                                     strokeWidth={2}
                                     fillOpacity={1}
-                                    fill="url(#colorCalls)"
+                                    fill="url(#colorValue)"
                                 />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
+                </div>
+
+                {/* Advanced Section: Docs + Chat */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
+                    <ChatSection />
+                    <DocumentsSection />
                 </div>
 
                 {/* Call History Section */}
@@ -214,13 +489,10 @@ const Dashboard: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {calls.map(call => (
+                                {filteredCalls.map(call => (
                                     <tr key={call.id} style={{ borderBottom: '1px solid #222' }}>
                                         <td style={{ padding: '1rem' }}>
-                                            {/* Simple date formatting */}
                                             {new Date(call.created_at).toLocaleString('es-ES', {
-                                                month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                                            }) === 'Invalid Date' ? call.created_at : new Date(call.created_at).toLocaleString('es-ES', {
                                                 month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
                                             })}
                                         </td>
@@ -248,39 +520,6 @@ const Dashboard: React.FC = () => {
                             </tbody>
                         </table>
                     </div>
-                </div>
-
-                {/* Feedback Section */}
-                <div style={{
-                    background: 'var(--card-bg)',
-                    padding: '1.5rem',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border-color)'
-                }}>
-                    <h3 style={{ marginBottom: '1rem', fontSize: '1.1rem', fontWeight: 600 }}>Feedback para la Agencia</h3>
-                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1rem', fontSize: '0.9rem' }}>
-                        ¿Algo que mejorar en el agente? Envíanos tus comentarios directamente.
-                    </p>
-                    <form onSubmit={handleFeedbackSubmit}>
-                        <textarea
-                            value={feedback}
-                            onChange={(e) => setFeedback(e.target.value)}
-                            placeholder="Escribe tu mensaje aquí..."
-                            style={{
-                                width: '100%',
-                                minHeight: '100px',
-                                padding: '1rem',
-                                borderRadius: '8px',
-                                background: '#1a1a1a',
-                                border: '1px solid var(--border-color)',
-                                color: 'white',
-                                fontFamily: 'inherit',
-                                resize: 'vertical',
-                                marginBottom: '1rem'
-                            }}
-                        />
-                        <button type="submit" className="bg-gradient">Enviar Mensaje</button>
-                    </form>
                 </div>
 
             </div>
