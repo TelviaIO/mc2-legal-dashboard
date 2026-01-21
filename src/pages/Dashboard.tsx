@@ -137,6 +137,7 @@ const ChatSection = () => {
     const [loading, setLoading] = useState(true);
     const [authorName, setAuthorName] = useState(() => localStorage.getItem('chat_author_name') || '');
     const [editingId, setEditingId] = useState<string | null>(null);
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -221,9 +222,8 @@ const ChatSection = () => {
         }
     };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm('¿Borrar mensaje?')) return;
-
+    const performDelete = async (id: string) => {
+        setConfirmDeleteId(null);
         setMessages(prev => prev.filter(m => m.id !== id));
 
         const { error } = await supabase.from('messages').delete().eq('id', id);
@@ -236,6 +236,7 @@ const ChatSection = () => {
     const startEdit = (msg: Message) => {
         setInput(msg.text);
         setEditingId(msg.id);
+        setConfirmDeleteId(null); // Clear delete state if editing
     };
 
     const cancelEdit = () => {
@@ -299,8 +300,18 @@ const ChatSection = () => {
 
                             {msg.sender === 'user' && (
                                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.2rem', opacity: 0.6 }}>
-                                    <button onClick={() => startEdit(msg)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', fontSize: '0.8rem' }}>✎</button>
-                                    <button onClick={() => handleDelete(msg.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b6b', fontSize: '0.8rem' }}>🗑️</button>
+                                    {confirmDeleteId === msg.id ? (
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', background: '#333', padding: '0.2rem 0.5rem', borderRadius: '12px' }}>
+                                            <span style={{ fontSize: '0.75rem', color: '#ccc' }}>¿Borrar?</span>
+                                            <button onClick={() => performDelete(msg.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b6b', fontSize: '0.75rem', fontWeight: 'bold' }}>Sí</button>
+                                            <button onClick={() => setConfirmDeleteId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#fff', fontSize: '0.75rem' }}>No</button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <button onClick={() => startEdit(msg)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', fontSize: '0.8rem' }}>✎</button>
+                                            <button onClick={() => setConfirmDeleteId(msg.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b6b', fontSize: '0.8rem' }}>🗑️</button>
+                                        </>
+                                    )}
                                 </div>
                             )}
                         </div>
@@ -332,12 +343,13 @@ const ChatSection = () => {
     );
 };
 
-// Documents Component (Updated with Delete)
+// Documents Component (Updated with Inline Delete)
 const DocumentsSection = () => {
     const [documents, setDocuments] = useState<Document[]>([]);
     const [isAdding, setIsAdding] = useState(false);
     const [newDocName, setNewDocName] = useState('');
     const [newDocUrl, setNewDocUrl] = useState('');
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
     const fetchDocs = async () => {
         const { data } = await supabase.from('documents').select('*').order('created_at', { ascending: false });
@@ -366,11 +378,9 @@ const DocumentsSection = () => {
         }
     };
 
-    const handleDelete = async (id: string, e: React.MouseEvent) => {
-        e.stopPropagation(); // Stop propagation to prevent any parent click handlers
-        e.preventDefault(); // Prevent default link behavior if inside a link (though button is outside a)
-
-        if (!window.confirm('¿Eliminar documento?')) return;
+    const performDelete = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setConfirmDeleteId(null);
 
         setDocuments(prev => prev.filter(d => d.id !== id));
         const { error } = await supabase.from('documents').delete().eq('id', id);
@@ -420,23 +430,32 @@ const DocumentsSection = () => {
                                     </div>
                                 </div>
                             </a>
-                            <button
-                                onClick={(e) => handleDelete(doc.id, e)}
-                                style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: '#ff6b6b',
-                                    cursor: 'pointer',
-                                    padding: '0.5rem',
-                                    fontSize: '1rem',
-                                    opacity: 0.7,
-                                    transition: 'opacity 0.2s',
-                                    zIndex: 10
-                                }}
-                                title="Eliminar documento"
-                            >
-                                🗑️
-                            </button>
+
+                            <div style={{ display: 'flex', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
+                                {confirmDeleteId === doc.id ? (
+                                    <div style={{ display: 'flex', gap: '0.5rem', background: '#333', padding: '0.2rem 0.5rem', borderRadius: '4px', zIndex: 10 }}>
+                                        <button onClick={(e) => performDelete(doc.id, e)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b6b', fontSize: '0.8rem', fontWeight: 'bold' }}>Sí</button>
+                                        <button onClick={() => setConfirmDeleteId(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#fff', fontSize: '0.8rem' }}>No</button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={(e) => { e.preventDefault(); setConfirmDeleteId(doc.id); }}
+                                        style={{
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: '#ff6b6b',
+                                            cursor: 'pointer',
+                                            padding: '0.5rem',
+                                            fontSize: '1rem',
+                                            opacity: 0.7,
+                                            zIndex: 10
+                                        }}
+                                        title="Eliminar documento"
+                                    >
+                                        🗑️
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     ))
                 )}
