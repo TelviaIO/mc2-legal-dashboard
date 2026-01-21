@@ -244,14 +244,36 @@ const ChatSection = () => {
 // Documents Component
 const DocumentsSection = () => {
     const [documents, setDocuments] = useState<Document[]>([]);
+    const [isAdding, setIsAdding] = useState(false);
+    const [newDocName, setNewDocName] = useState('');
+    const [newDocUrl, setNewDocUrl] = useState('');
+
+    const fetchDocs = async () => {
+        const { data } = await supabase.from('documents').select('*').order('created_at', { ascending: false });
+        if (data) setDocuments(data as Document[]);
+    };
 
     useEffect(() => {
-        const fetchDocs = async () => {
-            const { data } = await supabase.from('documents').select('*').order('created_at', { ascending: false });
-            if (data) setDocuments(data as Document[]);
-        };
         fetchDocs();
     }, []);
+
+    const handleSave = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newDocName.trim() || !newDocUrl.trim()) return;
+
+        const { error } = await supabase.from('documents').insert([
+            { name: newDocName, url: newDocUrl }
+        ]);
+
+        if (error) {
+            console.error('Error saving document:', error);
+        } else {
+            setNewDocName('');
+            setNewDocUrl('');
+            setIsAdding(false);
+            fetchDocs();
+        }
+    };
 
     return (
         <div style={{
@@ -297,17 +319,42 @@ const DocumentsSection = () => {
                 )}
             </div>
 
-            <button style={{
-                marginTop: '1rem',
-                background: 'transparent',
-                border: '1px dashed var(--text-secondary)',
-                color: 'var(--text-secondary)',
-                padding: '1rem',
-                fontSize: '0.9rem',
-                cursor: 'pointer'
-            }} onClick={() => alert('Función de subida pendiente de configurar bucket')}>
-                + Subir nuevo documento
-            </button>
+            {isAdding ? (
+                <form onSubmit={handleSave} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid #333', paddingTop: '1rem' }}>
+                    <input
+                        placeholder="Nombre (ej. Guía)"
+                        value={newDocName}
+                        onChange={e => setNewDocName(e.target.value)}
+                        style={{ padding: '0.6rem', borderRadius: '6px', background: '#0a0a0a', border: '1px solid #333', color: 'white', fontSize: '0.9rem' }}
+                        autoFocus
+                    />
+                    <input
+                        placeholder="URL (https://...)"
+                        value={newDocUrl}
+                        onChange={e => setNewDocUrl(e.target.value)}
+                        style={{ padding: '0.6rem', borderRadius: '6px', background: '#0a0a0a', border: '1px solid #333', color: 'white', fontSize: '0.9rem' }}
+                    />
+                    <div style={{ display: 'flex', gap: '0.5rem' }}>
+                        <button type="submit" className="bg-gradient" style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', fontSize: '0.9rem' }}>Guardar</button>
+                        <button type="button" onClick={() => setIsAdding(false)} style={{ flex: 1, background: '#333', border: 'none', color: 'white', borderRadius: '6px', fontSize: '0.9rem' }}>Cancelar</button>
+                    </div>
+                </form>
+            ) : (
+                <button
+                    onClick={() => setIsAdding(true)}
+                    style={{
+                        marginTop: '1rem',
+                        background: 'transparent',
+                        border: '1px dashed var(--text-secondary)',
+                        color: 'var(--text-secondary)',
+                        padding: '1rem',
+                        fontSize: '0.9rem',
+                        cursor: 'pointer'
+                    }}
+                >
+                    + Añadir enlace a documento
+                </button>
+            )}
         </div>
     );
 };
