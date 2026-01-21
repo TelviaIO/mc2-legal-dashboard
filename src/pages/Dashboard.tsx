@@ -664,7 +664,48 @@ const Dashboard: React.FC = () => {
         });
 
         setFilteredCalls(filtered);
+        setVisibleRows(10); // Reset pagination on filter change
     }, [allCalls, timeFilter, customStart, customEnd]);
+
+    // Pagination State
+    const [visibleRows, setVisibleRows] = useState(10);
+
+    const handleLoadMore = () => {
+        setVisibleRows(prev => prev + 20);
+    };
+
+    const handleShowAll = () => {
+        setVisibleRows(filteredCalls.length);
+    };
+
+    const handleExportCSV = () => {
+        const headers = ['Fecha', 'Duración', 'Estado', 'Teléfono', 'Resultado', 'Coste', 'Grabación'];
+        const rows = filteredCalls.map(call => [
+            new Date(call.created_at).toLocaleString(),
+            call.t_duration,
+            call.t_status === 'completed' ? 'Completada' : 'Perdida',
+            call.phone_number || '-',
+            call.outcome || '-',
+            call.n_cost ? call.n_cost.toFixed(2) : '0.00',
+            call.t_recording_url || ''
+        ]);
+
+        const csvContent = [
+            headers.join(','),
+            ...rows.map(row => row.map(item => `"${item}"`).join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `reporte_llamadas_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
 
     // KPIs & Chart Data Calculation
     const stats = useMemo(() => {
@@ -848,7 +889,26 @@ const Dashboard: React.FC = () => {
 
                 {/* Recent Calls Table */}
                 <div style={{ background: 'var(--card-bg)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                    <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>Llamadas Recientes</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                        <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>Llamadas Recientes</h3>
+                        <button
+                            onClick={handleExportCSV}
+                            style={{
+                                background: '#333',
+                                border: '1px solid #444',
+                                color: 'white',
+                                padding: '0.4rem 0.8rem',
+                                borderRadius: '6px',
+                                fontSize: '0.8rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '0.4rem'
+                            }}
+                        >
+                            Exportar CSV 📥
+                        </button>
+                    </div>
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                             <thead>
@@ -863,7 +923,7 @@ const Dashboard: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredCalls.slice(0, 10).map(call => (
+                                {filteredCalls.slice(0, visibleRows).map(call => (
                                     <tr key={call.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
                                         <td style={{ padding: '1rem' }}>{new Date(call.created_at).toLocaleString()}</td>
                                         <td style={{ padding: '1rem' }}>{call.t_duration}</td>
@@ -889,6 +949,38 @@ const Dashboard: React.FC = () => {
                             </tbody>
                         </table>
                     </div>
+
+                    {visibleRows < filteredCalls.length && (
+                        <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1rem', gap: '1rem' }}>
+                            <button
+                                onClick={handleLoadMore}
+                                style={{
+                                    background: 'var(--primary-gradient)',
+                                    border: 'none',
+                                    color: 'white',
+                                    padding: '0.5rem 1.5rem',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer',
+                                    fontWeight: 500
+                                }}
+                            >
+                                Cargar más
+                            </button>
+                            <button
+                                onClick={handleShowAll}
+                                style={{
+                                    background: 'transparent',
+                                    border: '1px solid #444',
+                                    color: '#ccc',
+                                    padding: '0.5rem 1.5rem',
+                                    borderRadius: '8px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Ver todas
+                            </button>
+                        </div>
+                    )}
                 </div>
 
             </div>
