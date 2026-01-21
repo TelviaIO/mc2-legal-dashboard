@@ -58,7 +58,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                 borderTop: '1px solid var(--border-color)',
                 marginTop: 'auto'
             }}>
-                Desarrollado con <span style={{ color: '#ef4444' }}>♥</span> <a href="https://telvia.io" target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>Telvia.io</a>
+                Desarrollado por <a href="https://telvia.io" target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>Telvia.io</a>
             </footer>
         </div>
     );

@@ -315,8 +315,8 @@ const ChatSection = () => {
                                         </div>
                                     ) : (
                                         <>
-                                            <button onClick={() => startEdit(msg)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', fontSize: '0.8rem' }}>✎</button>
-                                            <button onClick={() => setConfirmDeleteId(msg.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b6b', fontSize: '0.8rem' }}>🗑️</button>
+                                            <button onClick={() => startEdit(msg)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ccc', fontSize: '0.8rem' }}>Editar</button>
+                                            <button onClick={() => setConfirmDeleteId(msg.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ff6b6b', fontSize: '0.8rem' }}>Borrar</button>
                                         </>
                                     )}
                                 </div>
@@ -453,13 +453,13 @@ const DocumentsSection = () => {
                                             color: '#ff6b6b',
                                             cursor: 'pointer',
                                             padding: '0.5rem',
-                                            fontSize: '1rem',
+                                            fontSize: '0.8rem',
                                             opacity: 0.7,
                                             zIndex: 10
                                         }}
                                         title="Eliminar documento"
                                     >
-                                        🗑️
+                                        Borrar
                                     </button>
                                 )}
                             </div>
@@ -559,7 +559,7 @@ const PendingTasksSection = () => {
                                 <button onClick={() => setConfirmDeleteId(null)} style={{ border: 'none', background: 'none', color: '#ccc', cursor: 'pointer', fontSize: '0.75rem' }}>No</button>
                             </div>
                         ) : (
-                            <button onClick={() => setConfirmDeleteId(task.id)} style={{ border: 'none', background: 'none', cursor: 'pointer', opacity: 0.5 }}>✕</button>
+                            <button onClick={() => setConfirmDeleteId(task.id)} style={{ border: 'none', background: 'none', cursor: 'pointer', opacity: 0.5, color: '#ccc', fontSize: '0.8rem' }}>Borrar</button>
                         )}
                     </div>
                 ))}
@@ -906,7 +906,7 @@ const Dashboard: React.FC = () => {
                                 gap: '0.4rem'
                             }}
                         >
-                            Exportar CSV 📥
+                            Exportar CSV
                         </button>
                     </div>
                     <div style={{ overflowX: 'auto' }}>
