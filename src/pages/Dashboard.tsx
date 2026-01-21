@@ -137,7 +137,7 @@ const ChatSection = () => {
     const [loading, setLoading] = useState(true);
     const [authorName, setAuthorName] = useState(() => localStorage.getItem('chat_author_name') || '');
     const [editingId, setEditingId] = useState<string | null>(null);
-    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const messagesContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (authorName) {
@@ -152,8 +152,10 @@ const ChatSection = () => {
     }, []);
 
     useEffect(() => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+        // Scroll to bottom of container only, avoiding window scroll
+        if (messagesContainerRef.current) {
+            const { scrollHeight, clientHeight } = messagesContainerRef.current;
+            messagesContainerRef.current.scrollTop = scrollHeight - clientHeight;
         }
     }, [messages]);
 
@@ -263,7 +265,7 @@ const ChatSection = () => {
                 />
             </div>
 
-            <div style={{ flex: 1, padding: '1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div ref={messagesContainerRef} style={{ flex: 1, padding: '1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 {loading && messages.length === 0 ? (
                     <p style={{ textAlign: 'center', color: '#666', fontSize: '0.9rem' }}>Cargando...</p>
                 ) : (
@@ -304,7 +306,6 @@ const ChatSection = () => {
                         </div>
                     ))
                 )}
-                <div ref={messagesEndRef} />
             </div>
 
             <form onSubmit={handleSend} style={{ padding: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -331,7 +332,7 @@ const ChatSection = () => {
     );
 };
 
-// Documents Component
+// Documents Component (Updated with Delete)
 const DocumentsSection = () => {
     const [documents, setDocuments] = useState<Document[]>([]);
     const [isAdding, setIsAdding] = useState(false);
@@ -365,6 +366,21 @@ const DocumentsSection = () => {
         }
     };
 
+    const handleDelete = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation(); // Stop propagation to prevent any parent click handlers
+        e.preventDefault(); // Prevent default link behavior if inside a link (though button is outside a)
+
+        if (!window.confirm('¿Eliminar documento?')) return;
+
+        setDocuments(prev => prev.filter(d => d.id !== id));
+        const { error } = await supabase.from('documents').delete().eq('id', id);
+
+        if (error) {
+            console.error('Error deleting doc:', error);
+            fetchDocs();
+        }
+    };
+
     return (
         <div style={{
             background: 'var(--card-bg)',
@@ -382,7 +398,7 @@ const DocumentsSection = () => {
                     <p style={{ color: '#666', fontSize: '0.9rem' }}>No hay documentos disponibles.</p>
                 ) : (
                     documents.map(doc => (
-                        <a key={doc.id} href={doc.url} target="_blank" rel="noreferrer" style={{
+                        <div key={doc.id} style={{
                             display: 'flex',
                             alignItems: 'center',
                             gap: '0.8rem',
@@ -390,18 +406,38 @@ const DocumentsSection = () => {
                             background: '#1a1a1a',
                             borderRadius: '8px',
                             border: '1px solid var(--border-color)',
-                            textDecoration: 'none',
-                            color: 'white',
-                            transition: 'background 0.2s'
+                            transition: 'background 0.2s',
+                            position: 'relative'
                         }}>
-                            <div style={{ width: '30px', height: '30px', background: 'var(--primary-gradient)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold' }}>PDF</div>
-                            <div style={{ flex: 1 }}>
-                                <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>{doc.name}</div>
-                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                                    {new Date(doc.created_at).toLocaleDateString()}
+                            <a href={doc.url} target="_blank" rel="noreferrer" style={{
+                                display: 'flex', alignItems: 'center', gap: '0.8rem', flex: 1, textDecoration: 'none', color: 'white'
+                            }}>
+                                <div style={{ width: '30px', height: '30px', background: 'var(--primary-gradient)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold', flexShrink: 0 }}>PDF</div>
+                                <div style={{ flex: 1 }}>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>{doc.name}</div>
+                                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                        {new Date(doc.created_at).toLocaleDateString()}
+                                    </div>
                                 </div>
-                            </div>
-                        </a>
+                            </a>
+                            <button
+                                onClick={(e) => handleDelete(doc.id, e)}
+                                style={{
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: '#ff6b6b',
+                                    cursor: 'pointer',
+                                    padding: '0.5rem',
+                                    fontSize: '1rem',
+                                    opacity: 0.7,
+                                    transition: 'opacity 0.2s',
+                                    zIndex: 10
+                                }}
+                                title="Eliminar documento"
+                            >
+                                🗑️
+                            </button>
+                        </div>
                     ))
                 )}
             </div>
@@ -561,11 +597,6 @@ const Dashboard: React.FC = () => {
             }
         });
 
-        // Ensure we don't return sparse data if we want a continuous line? 
-        // For now, let's just return what we have mapped.
-        // Recharts handles missing points ok usually, or needed filling.
-        // Let's stick to the existing simple pattern.
-
         return Object.entries(grouped).map(([name, value]) => ({ name, value }));
     }, [filteredCalls, selectedMetric, timeFilter]);
 
@@ -646,130 +677,87 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 {/* Outcome KPIs */}
-                <h3 style={{ fontSize: '1rem', fontWeight: 600, marginTop: '-0.5rem' }}>Resultados de Gestión</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
-                    <div onClick={() => setSelectedMetric('no_reconoce_deuda')} style={{ cursor: 'pointer', background: selectedMetric === 'no_reconoce_deuda' ? 'linear-gradient(145deg, #1e1e1e, #121212)' : 'var(--card-bg)', padding: '1rem', borderRadius: '12px', border: selectedMetric === 'no_reconoce_deuda' ? '1px solid #8e2de2' : '1px solid var(--border-color)', position: 'relative', overflow: 'hidden' }}>
-                        {selectedMetric === 'no_reconoce_deuda' && <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '3px', background: 'var(--primary-gradient)' }} />}
-                        <p style={{ fontSize: '0.8rem', color: '#ff6b6b' }}>No reconoce la deuda</p>
-                        <p style={{ fontSize: '1.5rem', fontWeight: 700 }}>{stats.noReconoce}</p>
-                    </div>
-                    <div onClick={() => setSelectedMetric('no_localizado')} style={{ cursor: 'pointer', background: selectedMetric === 'no_localizado' ? 'linear-gradient(145deg, #1e1e1e, #121212)' : 'var(--card-bg)', padding: '1rem', borderRadius: '12px', border: selectedMetric === 'no_localizado' ? '1px solid #8e2de2' : '1px solid var(--border-color)', position: 'relative', overflow: 'hidden' }}>
-                        {selectedMetric === 'no_localizado' && <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '3px', background: 'var(--primary-gradient)' }} />}
-                        <p style={{ fontSize: '0.8rem', color: '#adb5bd' }}>No localizado</p>
-                        <p style={{ fontSize: '1.5rem', fontWeight: 700 }}>{stats.noLocalizado}</p>
-                    </div>
-                    <div onClick={() => setSelectedMetric('acepta_pagar')} style={{ cursor: 'pointer', background: selectedMetric === 'acepta_pagar' ? 'linear-gradient(145deg, #1e1e1e, #121212)' : 'var(--card-bg)', padding: '1rem', borderRadius: '12px', border: selectedMetric === 'acepta_pagar' ? '1px solid #8e2de2' : '1px solid var(--border-color)', position: 'relative', overflow: 'hidden' }}>
-                        {selectedMetric === 'acepta_pagar' && <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '3px', background: 'var(--primary-gradient)' }} />}
-                        <p style={{ fontSize: '0.8rem', color: '#51cf66' }}>Acepta pagar</p>
-                        <p style={{ fontSize: '1.5rem', fontWeight: 700 }}>{stats.aceptaPagar}</p>
-                    </div>
-                    <div onClick={() => setSelectedMetric('acepta_pagar_parte')} style={{ cursor: 'pointer', background: selectedMetric === 'acepta_pagar_parte' ? 'linear-gradient(145deg, #1e1e1e, #121212)' : 'var(--card-bg)', padding: '1rem', borderRadius: '12px', border: selectedMetric === 'acepta_pagar_parte' ? '1px solid #8e2de2' : '1px solid var(--border-color)', position: 'relative', overflow: 'hidden' }}>
-                        {selectedMetric === 'acepta_pagar_parte' && <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '3px', background: 'var(--primary-gradient)' }} />}
-                        <p style={{ fontSize: '0.8rem', color: '#fcc419' }}>Pago parcial</p>
-                        <p style={{ fontSize: '1.5rem', fontWeight: 700 }}>{stats.pagoParcial}</p>
-                    </div>
-                    <div onClick={() => setSelectedMetric('enfadado')} style={{ cursor: 'pointer', background: selectedMetric === 'enfadado' ? 'linear-gradient(145deg, #1e1e1e, #121212)' : 'var(--card-bg)', padding: '1rem', borderRadius: '12px', border: selectedMetric === 'enfadado' ? '1px solid #8e2de2' : '1px solid var(--border-color)', position: 'relative', overflow: 'hidden' }}>
-                        {selectedMetric === 'enfadado' && <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '3px', background: 'var(--primary-gradient)' }} />}
-                        <p style={{ fontSize: '0.8rem', color: '#fa5252' }}>Enfadado</p>
-                        <p style={{ fontSize: '1.5rem', fontWeight: 700 }}>{stats.enfadado}</p>
-                    </div>
-                    <div onClick={() => setSelectedMetric('cuelga_antes')} style={{ cursor: 'pointer', background: selectedMetric === 'cuelga_antes' ? 'linear-gradient(145deg, #1e1e1e, #121212)' : 'var(--card-bg)', padding: '1rem', borderRadius: '12px', border: selectedMetric === 'cuelga_antes' ? '1px solid #8e2de2' : '1px solid var(--border-color)', position: 'relative', overflow: 'hidden' }}>
-                        {selectedMetric === 'cuelga_antes' && <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '3px', background: 'var(--primary-gradient)' }} />}
-                        <p style={{ fontSize: '0.8rem', color: '#ffec99' }}>Cuelga antes</p>
-                        <p style={{ fontSize: '1.5rem', fontWeight: 700 }}>{stats.cuelgaAntes}</p>
-                    </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
+                    <KPICard title="No Reconoce" value={stats.noReconoce} isActive={selectedMetric === 'no_reconoce_deuda'} onClick={() => setSelectedMetric('no_reconoce_deuda')} />
+                    <KPICard title="No Localizado" value={stats.noLocalizado} isActive={selectedMetric === 'no_localizado'} onClick={() => setSelectedMetric('no_localizado')} />
+                    <KPICard title="Acepta Pagar" value={stats.aceptaPagar} isActive={selectedMetric === 'acepta_pagar'} onClick={() => setSelectedMetric('acepta_pagar')} />
+                    <KPICard title="Pago Parcial" value={stats.pagoParcial} isActive={selectedMetric === 'acepta_pagar_parte'} onClick={() => setSelectedMetric('acepta_pagar_parte')} />
+                    <KPICard title="Enfadado" value={stats.enfadado} isActive={selectedMetric === 'enfadado'} onClick={() => setSelectedMetric('enfadado')} />
+                    <KPICard title="Cuelga Antes" value={stats.cuelgaAntes} isActive={selectedMetric === 'cuelga_antes'} onClick={() => setSelectedMetric('cuelga_antes')} />
                 </div>
 
                 {/* Chart Section */}
-                <div style={{
-                    background: 'var(--card-bg)',
-                    padding: '1.5rem',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border-color)',
-                    minHeight: '350px'
-                }}>
-                    <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem', fontWeight: 600 }}>
-                        Gráfica de: {getChartTitle()}
-                    </h3>
-                    <div style={{ height: '300px', width: '100%' }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={chartData}>
-                                <defs>
-                                    <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#8e2de2" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#8e2de2" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
-                                <XAxis dataKey="name" stroke="#666" tick={{ fill: '#888' }} axisLine={false} tickLine={false} />
-                                <YAxis stroke="#666" tick={{ fill: '#888' }} axisLine={false} tickLine={false} />
-                                <Tooltip
-                                    contentStyle={{ backgroundColor: '#111', border: '1px solid #333', borderRadius: '8px' }}
-                                    itemStyle={{ color: '#fff' }}
-                                />
-                                <Area
-                                    type="monotone"
-                                    dataKey="value"
-                                    stroke="#8e2de2"
-                                    strokeWidth={2}
-                                    fillOpacity={1}
-                                    fill="url(#colorValue)"
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
+                <div style={{ background: 'var(--card-bg)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)', height: '350px' }}>
+                    <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>{getChartTitle()}</h3>
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={chartData}>
+                            <defs>
+                                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#8e2de2" stopOpacity={0.3} />
+                                    <stop offset="95%" stopColor="#8e2de2" stopOpacity={0} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#333" vertical={false} />
+                            <XAxis dataKey="name" stroke="#666" tick={{ fontSize: 12 }} />
+                            <YAxis stroke="#666" tick={{ fontSize: 12 }} />
+                            <Tooltip
+                                contentStyle={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: '8px' }}
+                                itemStyle={{ color: 'white' }}
+                            />
+                            <Area
+                                type="monotone"
+                                dataKey="value"
+                                stroke="#8e2de2"
+                                strokeWidth={3}
+                                fillOpacity={1}
+                                fill="url(#colorValue)"
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
                 </div>
 
-                {/* Advanced Section: Docs + Chat */}
+                {/* Bottom Section: Chat & Documents */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
                     <ChatSection />
                     <DocumentsSection />
                 </div>
 
-                {/* Call History Section */}
-                <div style={{
-                    background: 'var(--card-bg)',
-                    padding: '1.5rem',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border-color)'
-                }}>
-                    <h3 style={{ marginBottom: '1.5rem', fontSize: '1.1rem', fontWeight: 600 }}>Historial de Llamadas</h3>
+
+                {/* Recent Calls Table */}
+                <div style={{ background: 'var(--card-bg)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                    <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>Llamadas Recientes</h3>
                     <div style={{ overflowX: 'auto' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
                             <thead>
-                                <tr style={{ borderBottom: '1px solid #333', color: 'var(--text-secondary)', textAlign: 'left' }}>
-                                    <th style={{ padding: '1rem', fontWeight: 500 }}>Fecha</th>
-                                    <th style={{ padding: '1rem', fontWeight: 500 }}>ID</th>
-                                    <th style={{ padding: '1rem', fontWeight: 500 }}>Duración</th>
-                                    <th style={{ padding: '1rem', fontWeight: 500 }}>Estado</th>
-                                    <th style={{ padding: '1rem', fontWeight: 500 }}>Coste</th>
-                                    <th style={{ padding: '1rem', fontWeight: 500 }}>Grabación</th>
+                                <tr style={{ borderBottom: '1px solid #333', color: '#888', textAlign: 'left' }}>
+                                    <th style={{ padding: '1rem' }}>Fecha</th>
+                                    <th style={{ padding: '1rem' }}>Duración</th>
+                                    <th style={{ padding: '1rem' }}>Estado</th>
+                                    <th style={{ padding: '1rem' }}>Teléfono</th>
+                                    <th style={{ padding: '1rem' }}>Resultado</th>
+                                    <th style={{ padding: '1rem' }}>Coste</th>
+                                    <th style={{ padding: '1rem' }}>Grabación</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredCalls.map(call => (
-                                    <tr key={call.id} style={{ borderBottom: '1px solid #222' }}>
-                                        <td style={{ padding: '1rem' }}>
-                                            {new Date(call.created_at).toLocaleString('es-ES', {
-                                                month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                                            })}
-                                        </td>
-                                        <td style={{ padding: '1rem', color: '#c4b5fd' }}>{call.id.slice(0, 8)}...</td>
+                                {filteredCalls.slice(0, 10).map(call => (
+                                    <tr key={call.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
+                                        <td style={{ padding: '1rem' }}>{new Date(call.created_at).toLocaleString()}</td>
                                         <td style={{ padding: '1rem' }}>{call.t_duration}</td>
                                         <td style={{ padding: '1rem' }}>
                                             <span style={{
                                                 padding: '0.2rem 0.6rem',
                                                 borderRadius: '12px',
-                                                background: call.t_status === 'completed' ? 'rgba(76, 209, 55, 0.2)' :
-                                                    call.t_status === 'missed' ? 'rgba(232, 65, 24, 0.2)' : 'rgba(251, 197, 49, 0.2)',
-                                                color: call.t_status === 'completed' ? '#4cd137' :
-                                                    call.t_status === 'missed' ? '#e84118' : '#fbc531',
+                                                background: call.t_status === 'completed' ? 'rgba(76, 175, 80, 0.2)' : 'rgba(244, 67, 54, 0.2)',
+                                                color: call.t_status === 'completed' ? '#4caf50' : '#f44336',
                                                 fontSize: '0.8rem'
                                             }}>
-                                                {call.t_status === 'completed' ? 'Completada' : call.t_status === 'missed' ? 'Perdida' : 'Buzón'}
+                                                {call.t_status === 'completed' ? 'Completada' : 'Perdida'}
                                             </span>
                                         </td>
-                                        <td style={{ padding: '1rem' }}>{call.n_cost ? `${call.n_cost.toFixed(2)}€` : '-'}</td>
+                                        <td style={{ padding: '1rem', color: '#ccc' }}>{call.phone_number || '-'}</td>
+                                        <td style={{ padding: '1rem', color: '#ccc' }}>{call.outcome?.replace(/_/g, ' ') || '-'}</td>
+                                        <td style={{ padding: '1rem' }}>{call.n_cost ? `${call.n_cost.toFixed(2)}€` : '0.00€'}</td>
                                         <td style={{ padding: '1rem' }}>
                                             <AudioPlayer url={call.t_recording_url} />
                                         </td>
@@ -779,6 +767,7 @@ const Dashboard: React.FC = () => {
                         </table>
                     </div>
                 </div>
+
             </div>
         </DashboardLayout>
     );
