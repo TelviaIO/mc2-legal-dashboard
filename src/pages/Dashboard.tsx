@@ -667,8 +667,9 @@ const Dashboard: React.FC = () => {
         setVisibleRows(10); // Reset pagination on filter change
     }, [allCalls, timeFilter, customStart, customEnd]);
 
-    // Pagination State
+    // Pagination & Detail State
     const [visibleRows, setVisibleRows] = useState(10);
+    const [selectedCall, setSelectedCall] = useState<Call | null>(null);
 
     const handleLoadMore = () => {
         setVisibleRows(prev => prev + 20);
@@ -679,7 +680,7 @@ const Dashboard: React.FC = () => {
     };
 
     const handleExportCSV = () => {
-        const headers = ['Fecha', 'Duración', 'Estado', 'Teléfono', 'Resultado', 'Coste', 'Grabación'];
+        const headers = ['Fecha', 'Duración', 'Estado', 'Teléfono', 'Resultado', 'Coste', 'Grabación', 'Resumen'];
         const rows = filteredCalls.map(call => [
             new Date(call.created_at).toLocaleString(),
             call.t_duration,
@@ -687,7 +688,8 @@ const Dashboard: React.FC = () => {
             call.phone_number || '-',
             call.outcome || '-',
             call.n_cost ? call.n_cost.toFixed(2) : '0.00',
-            call.t_recording_url || ''
+            call.t_recording_url || '',
+            call.t_summary || ''
         ]);
 
         const csvContent = [
@@ -924,7 +926,13 @@ const Dashboard: React.FC = () => {
                             </thead>
                             <tbody>
                                 {filteredCalls.slice(0, visibleRows).map(call => (
-                                    <tr key={call.id} style={{ borderBottom: '1px solid #1a1a1a' }}>
+                                    <tr
+                                        key={call.id}
+                                        onClick={() => setSelectedCall(call)}
+                                        style={{ borderBottom: '1px solid #1a1a1a', cursor: 'pointer', transition: 'background 0.2s' }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = '#1f1f1f'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                    >
                                         <td style={{ padding: '1rem' }}>{new Date(call.created_at).toLocaleString()}</td>
                                         <td style={{ padding: '1rem' }}>{call.t_duration}</td>
                                         <td style={{ padding: '1rem' }}>
@@ -942,7 +950,9 @@ const Dashboard: React.FC = () => {
                                         <td style={{ padding: '1rem', color: '#ccc' }}>{call.outcome?.replace(/_/g, ' ') || '-'}</td>
                                         <td style={{ padding: '1rem' }}>{call.n_cost ? `${call.n_cost.toFixed(2)}€` : '0.00€'}</td>
                                         <td style={{ padding: '1rem' }}>
-                                            <AudioPlayer url={call.t_recording_url} />
+                                            <div onClick={(e) => e.stopPropagation()}>
+                                                <AudioPlayer url={call.t_recording_url} />
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -983,6 +993,86 @@ const Dashboard: React.FC = () => {
                     )}
                 </div>
 
+                {/* Modal for Call Details */}
+                {selectedCall && (
+                    <div style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: 'rgba(0,0,0,0.8)',
+                        backdropFilter: 'blur(5px)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1000
+                    }} onClick={() => setSelectedCall(null)}>
+                        <div style={{
+                            background: '#1a1a1a',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '16px',
+                            padding: '2rem',
+                            maxWidth: '600px',
+                            width: '90%',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '1.5rem',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                        }} onClick={(e) => e.stopPropagation()}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <h3 style={{ margin: 0, fontSize: '1.2rem' }}>Detalle de Llamada</h3>
+                                <button onClick={() => setSelectedCall(null)} style={{ background: 'transparent', border: 'none', color: '#666', fontSize: '1.2rem', cursor: 'pointer' }}>✕</button>
+                            </div>
+
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '1rem', borderBottom: '1px solid #333', paddingBottom: '1rem' }}>
+                                <div>
+                                    <span style={{ fontSize: '0.8rem', color: '#888' }}>Fecha</span>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>{new Date(selectedCall.created_at).toLocaleString()}</div>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '0.8rem', color: '#888' }}>Teléfono</span>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: 500, color: 'white' }}>{selectedCall.phone_number || 'Desconocido'}</div>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '0.8rem', color: '#888' }}>Duración</span>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>{selectedCall.t_duration || '-'}</div>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '0.8rem', color: '#888' }}>Coste</span>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: 500, color: '#4caf50' }}>{selectedCall.n_cost ? `${selectedCall.n_cost.toFixed(2)}€` : '0.00€'}</div>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '0.8rem', color: '#888' }}>Resultado</span>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>{selectedCall.outcome?.replace(/_/g, ' ') || '-'}</div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <span style={{ fontSize: '0.8rem', color: '#888', marginBottom: '0.5rem', display: 'block' }}>Resumen de la llamada</span>
+                                <div style={{
+                                    background: '#111',
+                                    padding: '1rem',
+                                    borderRadius: '8px',
+                                    border: '1px solid #333',
+                                    minHeight: '80px',
+                                    fontSize: '0.95rem',
+                                    lineHeight: '1.5',
+                                    color: selectedCall.t_summary ? 'white' : '#666'
+                                }}>
+                                    {selectedCall.t_summary || "No hay resumen disponible para esta llamada."}
+                                </div>
+                            </div>
+
+                            <div>
+                                <span style={{ fontSize: '0.8rem', color: '#888', marginBottom: '0.5rem', display: 'block' }}>Grabación</span>
+                                <div style={{ background: '#222', padding: '0.8rem', borderRadius: '12px', display: 'flex', justifyContent: 'center' }}>
+                                    <AudioPlayer url={selectedCall.t_recording_url} />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </DashboardLayout>
     );
