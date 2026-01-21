@@ -14,9 +14,18 @@ interface Call {
     t_recording_url: string;
 }
 
-interface ChartDataPoint {
+interface Message {
+    id: string;
+    sender: 'user' | 'agency';
+    text: string;
+    created_at: string;
+}
+
+interface Document {
+    id: string;
     name: string;
-    value: number;
+    url: string;
+    created_at: string;
 }
 
 type TimeFilter = 'day' | 'week' | 'month' | 'custom';
@@ -34,7 +43,7 @@ const KPICard = ({
 }: {
     title: string,
     value: string | number,
-    subValue?: string, // e.g. "15% vs last week" or "50 of 100"
+    subValue?: string,
     type?: 'money' | 'text',
     isActive: boolean,
     onClick: () => void
@@ -116,42 +125,60 @@ const AudioPlayer = ({ url }: { url: string }) => {
 };
 
 // Chat Component
-interface Message {
-    id: string;
-    sender: 'user' | 'agency';
-    text: string;
-    date: string;
-}
-
 const ChatSection = () => {
-    const [messages, setMessages] = useState<Message[]>([
-        { id: '1', sender: 'agency', text: 'Bienvenido a MC2 Legal. ¿En qué podemos ayudarte hoy?', date: new Date().toISOString() }
-    ]);
+    const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
+    const [loading, setLoading] = useState(true);
 
-    const handleSend = (e: React.FormEvent) => {
+    useEffect(() => {
+        fetchMessages();
+        // Poll for new messages every 5 seconds (Simple realtime alternative)
+        const interval = setInterval(fetchMessages, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const fetchMessages = async () => {
+        const { data, error } = await supabase
+            .from('messages')
+            .select('*')
+            .order('created_at', { ascending: true });
+
+        if (!error && data) {
+            setMessages(data as Message[]);
+        }
+        setLoading(false);
+    };
+
+    const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!input.trim()) return;
 
-        const newMessage: Message = {
-            id: Date.now().toString(),
-            sender: 'user',
-            text: input,
-            date: new Date().toISOString()
-        };
-
-        setMessages([...messages, newMessage]);
+        const text = input;
         setInput('');
 
-        // Simular respuesta
-        setTimeout(() => {
-            setMessages(prev => [...prev, {
-                id: (Date.now() + 1).toString(),
-                sender: 'agency',
-                text: 'Gracias por tu feedback. Lo revisaremos pronto.',
-                date: new Date().toISOString()
-            }]);
-        }, 1000);
+        // Optimistic update
+        const tempId = Date.now().toString();
+        const optimisticMsg: Message = { id: tempId, sender: 'user', text, created_at: new Date().toISOString() };
+        setMessages(prev => [...prev, optimisticMsg]);
+
+        const { error } = await supabase
+            .from('messages')
+            .insert([{ sender: 'user', text }]);
+
+        if (error) {
+            console.error('Error sending message:', error);
+            // Revert on error (simplified)
+            setMessages(prev => prev.filter(m => m.id !== tempId));
+            return;
+        }
+
+        fetchMessages(); // Refresh to get real ID
+
+        // Simulate Agency Response (Optional)
+        setTimeout(async () => {
+            await supabase.from('messages').insert([{ sender: 'agency', text: 'Gracias por tu mensaje. Lo revisaremos.' }]);
+            fetchMessages();
+        }, 2000);
     };
 
     return (
@@ -169,24 +196,28 @@ const ChatSection = () => {
             </div>
 
             <div style={{ flex: 1, padding: '1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {messages.map(msg => (
-                    <div key={msg.id} style={{
-                        alignSelf: msg.sender === 'user' ? 'flex-end' : 'flex-start',
-                        maxWidth: '80%',
-                        background: msg.sender === 'user' ? 'var(--primary-gradient)' : '#2a2a2a',
-                        color: 'white',
-                        padding: '0.8rem 1rem',
-                        borderRadius: '12px',
-                        borderBottomRightRadius: msg.sender === 'user' ? '2px' : '12px',
-                        borderBottomLeftRadius: msg.sender === 'agency' ? '2px' : '12px',
-                        fontSize: '0.9rem'
-                    }}>
-                        <p>{msg.text}</p>
-                        <span style={{ fontSize: '0.7rem', opacity: 0.7, marginTop: '0.4rem', display: 'block' }}>
-                            {new Date(msg.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                    </div>
-                ))}
+                {loading && messages.length === 0 ? (
+                    <p style={{ textAlign: 'center', color: '#666', fontSize: '0.9rem' }}>Cargando mensajes...</p>
+                ) : (
+                    messages.map(msg => (
+                        <div key={msg.id} style={{
+                            alignSelf: msg.sender === 'user' ? 'flex-end' : 'flex-start',
+                            maxWidth: '80%',
+                            background: msg.sender === 'user' ? 'var(--primary-gradient)' : '#2a2a2a',
+                            color: 'white',
+                            padding: '0.8rem 1rem',
+                            borderRadius: '12px',
+                            borderBottomRightRadius: msg.sender === 'user' ? '2px' : '12px',
+                            borderBottomLeftRadius: msg.sender === 'agency' ? '2px' : '12px',
+                            fontSize: '0.9rem'
+                        }}>
+                            <p>{msg.text}</p>
+                            <span style={{ fontSize: '0.7rem', opacity: 0.7, marginTop: '0.4rem', display: 'block' }}>
+                                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                        </div>
+                    ))
+                )}
             </div>
 
             <form onSubmit={handleSend} style={{ padding: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '0.5rem' }}>
@@ -211,52 +242,75 @@ const ChatSection = () => {
 };
 
 // Documents Component
-const DocumentsSection = () => (
-    <div style={{
-        background: 'var(--card-bg)',
-        padding: '1.5rem',
-        borderRadius: '12px',
-        border: '1px solid var(--border-color)',
-        height: '400px'
-    }}>
-        <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>Documentos Importantes</h3>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
-            Recursos y guías para tu agente.
-        </p>
+const DocumentsSection = () => {
+    const [documents, setDocuments] = useState<Document[]>([]);
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-            <a href="#" style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.8rem',
-                padding: '1rem',
-                background: '#1a1a1a',
-                borderRadius: '8px',
-                border: '1px solid var(--border-color)',
-                textDecoration: 'none',
-                color: 'white',
-                transition: 'background 0.2s'
-            }}>
-                <div style={{ width: '30px', height: '30px', background: 'var(--primary-gradient)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold' }}>PDF</div>
-                <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>Guía de Estilo.pdf</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Subido el 20 Ene</div>
-                </div>
-            </a>
+    useEffect(() => {
+        const fetchDocs = async () => {
+            const { data } = await supabase.from('documents').select('*').order('created_at', { ascending: false });
+            if (data) setDocuments(data as Document[]);
+        };
+        fetchDocs();
+    }, []);
+
+    return (
+        <div style={{
+            background: 'var(--card-bg)',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            border: '1px solid var(--border-color)',
+            height: '400px',
+            display: 'flex',
+            flexDirection: 'column'
+        }}>
+            <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>Documentos Importantes</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.5rem' }}>
+                Recursos y guías para tu agente.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem', overflowY: 'auto', flex: 1 }}>
+                {documents.length === 0 ? (
+                    <p style={{ color: '#666', fontSize: '0.9rem' }}>No hay documentos disponibles.</p>
+                ) : (
+                    documents.map(doc => (
+                        <a key={doc.id} href={doc.url} target="_blank" rel="noreferrer" style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.8rem',
+                            padding: '1rem',
+                            background: '#1a1a1a',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-color)',
+                            textDecoration: 'none',
+                            color: 'white',
+                            transition: 'background 0.2s'
+                        }}>
+                            <div style={{ width: '30px', height: '30px', background: 'var(--primary-gradient)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold' }}>PDF</div>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>{doc.name}</div>
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                                    {new Date(doc.created_at).toLocaleDateString()}
+                                </div>
+                            </div>
+                        </a>
+                    ))
+                )}
+            </div>
 
             <button style={{
                 marginTop: '1rem',
                 background: 'transparent',
                 border: '1px dashed var(--text-secondary)',
                 color: 'var(--text-secondary)',
-                padding: '2rem',
-                fontSize: '0.9rem'
-            }}>
+                padding: '1rem',
+                fontSize: '0.9rem',
+                cursor: 'pointer'
+            }} onClick={() => alert('Función de subida pendiente de configurar bucket')}>
                 + Subir nuevo documento
             </button>
         </div>
-    </div>
-);
+    );
+};
 
 
 const Dashboard: React.FC = () => {
