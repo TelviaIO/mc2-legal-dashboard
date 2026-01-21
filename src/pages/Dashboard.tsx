@@ -34,6 +34,13 @@ interface Document {
     created_at: string;
 }
 
+interface Task {
+    id: string;
+    text: string;
+    category: 'mc2' | 'telvia';
+    created_at: string;
+}
+
 type TimeFilter = 'day' | 'week' | 'month' | 'custom';
 type MetricType = 'calls' | 'answered' | 'cost' | 'recovered_debt' | 'no_reconoce_deuda' | 'no_localizado' | 'acepta_pagar' | 'acepta_pagar_parte' | 'enfadado' | 'cuelga_antes';
 
@@ -501,6 +508,91 @@ const DocumentsSection = () => {
     );
 };
 
+// Pending Tasks Component (New)
+const PendingTasksSection = () => {
+    const [tasks, setTasks] = useState<Task[]>([]);
+    const [mc2Input, setMc2Input] = useState('');
+    const [telviaInput, setTelviaInput] = useState('');
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+    const fetchTasks = async () => {
+        const { data } = await supabase.from('tasks').select('*').order('created_at', { ascending: true });
+        if (data) setTasks(data as Task[]);
+    };
+
+    useEffect(() => {
+        fetchTasks();
+    }, []);
+
+    const handleAdd = async (category: 'mc2' | 'telvia', text: string) => {
+        if (!text.trim()) return;
+
+        if (category === 'mc2') setMc2Input('');
+        else setTelviaInput('');
+
+        const { error } = await supabase.from('tasks').insert([{ text, category }]);
+        if (error) console.error('Error adding task:', error);
+        else fetchTasks();
+    };
+
+    const handleDelete = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setConfirmDeleteId(null);
+        setTasks(prev => prev.filter(t => t.id !== id));
+        await supabase.from('tasks').delete().eq('id', id);
+    };
+
+    const renderColumn = (title: string, category: 'mc2' | 'telvia', inputVal: string, setInputVal: (s: string) => void) => (
+        <div style={{ flex: 1, background: '#1a1a1a', borderRadius: '8px', padding: '1rem', display: 'flex', flexDirection: 'column' }}>
+            <h4 style={{ marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--text-secondary)', borderBottom: '1px solid #333', paddingBottom: '0.5rem' }}>
+                {title}
+            </h4>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
+                {tasks.filter(t => t.category === category).map(task => (
+                    <div key={task.id} style={{
+                        background: '#252525', padding: '0.8rem', borderRadius: '6px', fontSize: '0.9rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                    }}>
+                        <span>{task.text}</span>
+                        {confirmDeleteId === task.id ? (
+                            <div style={{ display: 'flex', gap: '0.3rem' }}>
+                                <button onClick={(e) => handleDelete(task.id, e)} style={{ border: 'none', background: 'none', color: '#ff6b6b', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.75rem' }}>Sí</button>
+                                <button onClick={() => setConfirmDeleteId(null)} style={{ border: 'none', background: 'none', color: '#ccc', cursor: 'pointer', fontSize: '0.75rem' }}>No</button>
+                            </div>
+                        ) : (
+                            <button onClick={() => setConfirmDeleteId(task.id)} style={{ border: 'none', background: 'none', cursor: 'pointer', opacity: 0.5 }}>✕</button>
+                        )}
+                    </div>
+                ))}
+            </div>
+            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input
+                    value={inputVal}
+                    onChange={(e) => setInputVal(e.target.value)}
+                    placeholder="Nueva tarea..."
+                    style={{ flex: 1, background: '#0a0a0a', border: '1px solid #333', borderRadius: '4px', padding: '0.4rem', color: 'white', fontSize: '0.8rem' }}
+                    onKeyDown={(e) => e.key === 'Enter' && handleAdd(category, inputVal)}
+                />
+                <button onClick={() => handleAdd(category, inputVal)} style={{ background: '#333', border: 'none', color: 'white', padding: '0 0.8rem', borderRadius: '4px', cursor: 'pointer' }}>+</button>
+            </div>
+        </div>
+    );
+
+    return (
+        <div style={{
+            background: 'var(--card-bg)',
+            padding: '1.5rem',
+            borderRadius: '12px',
+            border: '1px solid var(--border-color)',
+        }}>
+            <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>Tareas Pendientes</h3>
+            <div style={{ display: 'flex', gap: '1.5rem', flexDirection: 'row', flexWrap: 'wrap' }}>
+                {renderColumn('Pendiente MC2 Legal', 'mc2', mc2Input, setMc2Input)}
+                {renderColumn('Pendiente Telvia', 'telvia', telviaInput, setTelviaInput)}
+            </div>
+        </div>
+    );
+};
+
 
 const Dashboard: React.FC = () => {
     // Data State
@@ -751,6 +843,8 @@ const Dashboard: React.FC = () => {
                     <DocumentsSection />
                 </div>
 
+                {/* Pending Tasks Section */}
+                <PendingTasksSection />
 
                 {/* Recent Calls Table */}
                 <div style={{ background: 'var(--card-bg)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
