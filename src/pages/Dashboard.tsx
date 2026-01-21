@@ -439,7 +439,15 @@ const Dashboard: React.FC = () => {
         const answeredCalls = filteredCalls.filter(c => c.t_status === 'completed').length;
         const totalCost = filteredCalls.reduce((acc, curr) => acc + (curr.n_cost || 0), 0);
 
-        return { totalCalls, answeredCalls, totalCost };
+        // Outcome KPIs
+        const noReconoce = filteredCalls.filter(c => c.outcome === 'no_reconoce_deuda').length;
+        const noLocalizado = filteredCalls.filter(c => c.outcome === 'no_localizado').length;
+        const aceptaPagar = filteredCalls.filter(c => c.outcome === 'acepta_pagar').length;
+        const pagoParcial = filteredCalls.filter(c => c.outcome === 'acepta_pagar_parte').length;
+        const enfadado = filteredCalls.filter(c => c.outcome === 'enfadado').length;
+        const cuelgaAntes = filteredCalls.filter(c => c.outcome === 'cuelga_antes').length;
+
+        return { totalCalls, answeredCalls, totalCost, noReconoce, noLocalizado, aceptaPagar, pagoParcial, enfadado, cuelgaAntes };
     }, [filteredCalls]);
 
     const chartData = useMemo(() => {
@@ -520,6 +528,35 @@ const Dashboard: React.FC = () => {
                         isActive={selectedMetric === 'cost'}
                         onClick={() => setSelectedMetric('cost')}
                     />
+                </div>
+
+                {/* Outcome KPIs */}
+                <h3 style={{ fontSize: '1rem', fontWeight: 600, marginTop: '-0.5rem' }}>Resultados de Gestión</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem' }}>
+                    <div style={{ background: 'var(--card-bg)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                        <p style={{ fontSize: '0.8rem', color: '#ff6b6b' }}>No reconoce la deuda</p>
+                        <p style={{ fontSize: '1.5rem', fontWeight: 700 }}>{stats.noReconoce}</p>
+                    </div>
+                    <div style={{ background: 'var(--card-bg)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                        <p style={{ fontSize: '0.8rem', color: '#adb5bd' }}>No localizado</p>
+                        <p style={{ fontSize: '1.5rem', fontWeight: 700 }}>{stats.noLocalizado}</p>
+                    </div>
+                    <div style={{ background: 'var(--card-bg)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                        <p style={{ fontSize: '0.8rem', color: '#51cf66' }}>Acepta pagar</p>
+                        <p style={{ fontSize: '1.5rem', fontWeight: 700 }}>{stats.aceptaPagar}</p>
+                    </div>
+                    <div style={{ background: 'var(--card-bg)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                        <p style={{ fontSize: '0.8rem', color: '#fcc419' }}>Pago parcial</p>
+                        <p style={{ fontSize: '1.5rem', fontWeight: 700 }}>{stats.pagoParcial}</p>
+                    </div>
+                    <div style={{ background: 'var(--card-bg)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                        <p style={{ fontSize: '0.8rem', color: '#fa5252' }}>Enfadado</p>
+                        <p style={{ fontSize: '1.5rem', fontWeight: 700 }}>{stats.enfadado}</p>
+                    </div>
+                    <div style={{ background: 'var(--card-bg)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                        <p style={{ fontSize: '0.8rem', color: '#ffec99' }}>Cuelga antes</p>
+                        <p style={{ fontSize: '1.5rem', fontWeight: 700 }}>{stats.cuelgaAntes}</p>
+                    </div>
                 </div>
 
                 {/* Chart Section */}
