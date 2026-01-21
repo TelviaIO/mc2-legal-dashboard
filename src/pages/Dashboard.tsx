@@ -35,7 +35,7 @@ interface Document {
 }
 
 type TimeFilter = 'day' | 'week' | 'month' | 'custom';
-type MetricType = 'calls' | 'answered' | 'cost' | 'no_reconoce_deuda' | 'no_localizado' | 'acepta_pagar' | 'acepta_pagar_parte' | 'enfadado' | 'cuelga_antes';
+type MetricType = 'calls' | 'answered' | 'cost' | 'recovered_debt' | 'no_reconoce_deuda' | 'no_localizado' | 'acepta_pagar' | 'acepta_pagar_parte' | 'enfadado' | 'cuelga_antes';
 
 // Components
 
@@ -579,6 +579,7 @@ const Dashboard: React.FC = () => {
         const totalCalls = filteredCalls.length;
         const answeredCalls = filteredCalls.filter(c => c.t_status === 'completed').length;
         const totalCost = filteredCalls.reduce((acc, curr) => acc + (curr.n_cost || 0), 0);
+        const totalRecovered = 0; // Placeholder as requested
 
         // Outcome KPIs
         const noReconoce = filteredCalls.filter(c => c.outcome === 'no_reconoce_deuda').length;
@@ -588,7 +589,7 @@ const Dashboard: React.FC = () => {
         const enfadado = filteredCalls.filter(c => c.outcome === 'enfadado').length;
         const cuelgaAntes = filteredCalls.filter(c => c.outcome === 'cuelga_antes').length;
 
-        return { totalCalls, answeredCalls, totalCost, noReconoce, noLocalizado, aceptaPagar, pagoParcial, enfadado, cuelgaAntes };
+        return { totalCalls, answeredCalls, totalCost, totalRecovered, noReconoce, noLocalizado, aceptaPagar, pagoParcial, enfadado, cuelgaAntes };
     }, [filteredCalls]);
 
     const chartData = useMemo(() => {
@@ -604,6 +605,7 @@ const Dashboard: React.FC = () => {
             if (selectedMetric === 'calls') val = 1;
             else if (selectedMetric === 'answered') val = call.t_status === 'completed' ? 1 : 0;
             else if (selectedMetric === 'cost') val = call.n_cost || 0;
+            else if (selectedMetric === 'recovered_debt') val = 0; // Placeholder
             else if (selectedMetric === 'no_reconoce_deuda') val = call.outcome === 'no_reconoce_deuda' ? 1 : 0;
             else if (selectedMetric === 'no_localizado') val = call.outcome === 'no_localizado' ? 1 : 0;
             else if (selectedMetric === 'acepta_pagar') val = call.outcome === 'acepta_pagar' ? 1 : 0;
@@ -626,6 +628,7 @@ const Dashboard: React.FC = () => {
             calls: 'Volumen de Llamadas',
             answered: 'Llamadas Contestadas',
             cost: 'Gasto Total',
+            recovered_debt: 'Deuda Recuperada',
             no_reconoce_deuda: 'No Reconoce Deuda',
             no_localizado: 'No Localizado',
             acepta_pagar: 'Acepta Pagar',
@@ -692,6 +695,13 @@ const Dashboard: React.FC = () => {
                         type="money"
                         isActive={selectedMetric === 'cost'}
                         onClick={() => setSelectedMetric('cost')}
+                    />
+                    <KPICard
+                        title="Deuda Recuperada"
+                        value={stats.totalRecovered}
+                        type="money"
+                        isActive={selectedMetric === 'recovered_debt'}
+                        onClick={() => setSelectedMetric('recovered_debt')}
                     />
                 </div>
 
