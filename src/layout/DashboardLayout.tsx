@@ -49,6 +49,17 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
             <main style={{ flex: 1, padding: '2rem', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
                 {children}
             </main>
+
+            <footer style={{
+                padding: '2rem',
+                textAlign: 'center',
+                fontSize: '0.8rem',
+                color: 'var(--text-secondary)',
+                borderTop: '1px solid var(--border-color)',
+                marginTop: 'auto'
+            }}>
+                Desarrollado con <span style={{ color: '#ef4444' }}>♥</span> <a href="https://telvia.io" target="_blank" rel="noreferrer" style={{ color: 'inherit', textDecoration: 'none' }}>Telvia.io</a>
+            </footer>
         </div>
     );
 };
