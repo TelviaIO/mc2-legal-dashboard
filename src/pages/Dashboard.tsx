@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import DashboardLayout from '../layout/DashboardLayout';
 import { supabase } from '../lib/supabase';
-import { mockCalls, mockStats, mockChartData } from '../data/mockData';
+import { mockCalls } from '../data/mockData';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
 
 // Types
@@ -317,7 +317,7 @@ const Dashboard: React.FC = () => {
     // Data State
     const [allCalls, setAllCalls] = useState<Call[]>([]);
     const [filteredCalls, setFilteredCalls] = useState<Call[]>([]);
-    const [loading, setLoading] = useState(true);
+
 
     // Filter State
     const [timeFilter, setTimeFilter] = useState<TimeFilter>('week');
@@ -331,7 +331,7 @@ const Dashboard: React.FC = () => {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const { data, error } = await supabase
+                const { data } = await supabase
                     .from('calls')
                     .select('*')
                     .order('created_at', { ascending: false });
@@ -352,8 +352,6 @@ const Dashboard: React.FC = () => {
                 }
             } catch (err) {
                 console.error('Error fetching data:', err);
-            } finally {
-                setLoading(false);
             }
         };
         fetchData();
