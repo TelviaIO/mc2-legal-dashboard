@@ -12,6 +12,7 @@ interface Call {
     t_status: 'completed' | 'missed' | 'voicemail';
     n_cost: number;
     t_recording_url: string;
+    outcome?: 'no_reconoce_deuda' | 'no_localizado' | 'acepta_pagar' | 'acepta_pagar_parte' | string;
 }
 
 interface Message {
