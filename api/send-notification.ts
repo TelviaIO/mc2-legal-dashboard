@@ -55,10 +55,9 @@ export default async function handler(
                 return res.status(400).json({ error: 'Invalid notification type' });
         }
 
-        // Send from verified domain info@telvia.io
-        // IMPORTANT: Domain telvia.io MUST be verified in Resend dashboard for this to work.
+        // Send from verified domain panel.ia-al-telefono.com
         const emailResponse = await resend.emails.send({
-            from: 'IA Prejudicial <info@telvia.io>',
+            from: 'IA Prejudicial <info@panel.ia-al-telefono.com>',
             to: RECIPIENTS,
             subject: subject,
             html: html,
