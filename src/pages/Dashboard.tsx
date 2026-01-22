@@ -848,23 +848,43 @@ const Dashboard: React.FC = () => {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
                     <h2 className="text-gradient" style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Panel de Control</h2>
 
-                    <div style={{ display: 'flex', gap: '0.5rem', background: '#1a1a1a', padding: '0.3rem', borderRadius: '8px' }}>
-                        {(['day', 'week', 'month', 'custom'] as const).map(f => (
-                            <button
-                                key={f}
-                                onClick={() => setTimeFilter(f)}
-                                style={{
-                                    background: timeFilter === f ? 'var(--primary-gradient)' : 'transparent',
-                                    color: 'white',
-                                    border: 'none',
-                                    padding: '0.4rem 1rem',
-                                    borderRadius: '6px',
-                                    fontSize: '0.9rem'
-                                }}
-                            >
-                                {f === 'day' ? 'Hoy' : f === 'week' ? 'Semana' : f === 'month' ? 'Mes' : 'Personalizado'}
-                            </button>
-                        ))}
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                        <a
+                            href="/agents"
+                            style={{
+                                background: 'var(--primary-gradient)',
+                                color: 'white',
+                                border: 'none',
+                                padding: '0.5rem 1.2rem',
+                                borderRadius: '8px',
+                                fontSize: '0.9rem',
+                                fontWeight: 600,
+                                textDecoration: 'none',
+                                cursor: 'pointer',
+                                display: 'inline-block'
+                            }}
+                        >
+                            Mis Agentes
+                        </a>
+
+                        <div style={{ display: 'flex', gap: '0.5rem', background: '#1a1a1a', padding: '0.3rem', borderRadius: '8px' }}>
+                            {(['day', 'week', 'month', 'custom'] as const).map(f => (
+                                <button
+                                    key={f}
+                                    onClick={() => setTimeFilter(f)}
+                                    style={{
+                                        background: timeFilter === f ? 'var(--primary-gradient)' : 'transparent',
+                                        color: 'white',
+                                        border: 'none',
+                                        padding: '0.4rem 1rem',
+                                        borderRadius: '6px',
+                                        fontSize: '0.9rem'
+                                    }}
+                                >
+                                    {f === 'day' ? 'Hoy' : f === 'week' ? 'Semana' : f === 'month' ? 'Mes' : 'Personalizado'}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
 
