@@ -263,16 +263,13 @@ const ChatSection = () => {
 
             if (!res.ok) {
                 const errText = await res.text();
+                // We log the error but don't show an alert to avoid bad UX
                 console.error(`Notification ${type} failed:`, errText);
-                alert(`Error al enviar notificación: ${res.status} - ${errText}`);
             } else {
                 console.log(`Notification ${type} sent successfully`);
-                // Uncomment to confirm success in UI:
-                // alert('Notificación enviada correctamente');
             }
         } catch (error) {
             console.error('Error sending notification:', error);
-            alert(`Error de conexión para notificación: ${error}`);
         }
     };
 

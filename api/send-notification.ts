@@ -3,8 +3,8 @@ import { Resend } from 'resend';
 
 // Email recipients
 // In Resend Test Mode, you can only send to the email address you signed up with.
-// We limit this to info@telvia.io to ensure delivery during testing.
-const RECIPIENTS = ['info@telvia.io'];
+// If you want to send to others, you MUST verify your domain in Resend.
+const RECIPIENTS = ['info@telvia.io', 'arodriguez@mc2legal.es'];
 const APP_URL = 'https://mc2-legal-dashboard.vercel.app/';
 
 export default async function handler(
