@@ -10,24 +10,34 @@ interface CreateCallParams {
 
 export async function createCall(params: CreateCallParams): Promise<string> {
     try {
+        console.log('API_KEY available:', API_KEY ? 'Yes (length: ' + API_KEY.length + ')' : 'No');
+        console.log('API_KEY prefix:', API_KEY ? API_KEY.substring(0, 20) + '...' : 'None');
+
+        const requestBody = {
+            systemPrompt: params.systemPrompt || `Agent ID: ${params.agentId}`,
+            model: 'fixie-ai/ultravox',
+            voice: 'Mark',
+            languageHint: 'es',
+            temperature: 0.8
+        };
+
+        console.log('Request body:', requestBody);
+
         const response = await fetch('https://api.ultravox.ai/api/calls', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'X-API-Key': API_KEY
             },
-            body: JSON.stringify({
-                systemPrompt: params.systemPrompt || `Agent ID: ${params.agentId}`,
-                model: 'fixie-ai/ultravox',
-                voice: 'Mark',
-                languageHint: 'es',
-                temperature: 0.8
-            })
+            body: JSON.stringify(requestBody)
         });
+
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('API Error:', errorText);
+            console.error('API Error Response:', errorText);
             throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
         }
 
@@ -41,6 +51,10 @@ export async function createCall(params: CreateCallParams): Promise<string> {
         return callData.joinUrl;
     } catch (error) {
         console.error('Error creating call:', error);
+        if (error instanceof Error) {
+            console.error('Error message:', error.message);
+            console.error('Error stack:', error.stack);
+        }
         throw error;
     }
 }
