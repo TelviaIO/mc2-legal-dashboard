@@ -55,7 +55,7 @@ const Agents: React.FC = () => {
             uvSessionRef.current = session;
 
             // Step 3: Set up event listeners
-            session.addEventListener('status', (event) => {
+            session.addEventListener('status', (event: any) => {
                 console.log('Status event:', event);
                 const statusMap: Record<string, string> = {
                     'disconnected': 'Desconectado',
@@ -73,11 +73,11 @@ const Agents: React.FC = () => {
                 }
             });
 
-            session.addEventListener('transcripts', (event) => {
+            session.addEventListener('transcripts', (event: any) => {
                 console.log('Transcript:', event);
             });
 
-            session.addEventListener('error', (event) => {
+            session.addEventListener('error', (event: any) => {
                 console.error('Session error:', event);
                 setCallStatus('Error en la sesión');
                 setIsCallActive(false);
