@@ -102,40 +102,56 @@ const KPICard = ({
 const AudioPlayer = ({ url }: { url: string }) => {
     if (!url) return <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>No disponible</span>;
 
-    // Convert Google Drive URLs to direct download format
-    const getDirectUrl = (driveUrl: string) => {
-        // Handle different Google Drive URL formats
-        // Format 1: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
-        // Format 2: https://drive.google.com/open?id=FILE_ID
-        // Convert to: https://drive.google.com/uc?export=download&id=FILE_ID
-
-        let fileId = '';
-
-        // Try to extract file ID from various formats
+    // Extract file ID from Google Drive URL
+    const getFileId = (driveUrl: string) => {
         const match1 = driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
         const match2 = driveUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
 
-        if (match1) {
-            fileId = match1[1];
-        } else if (match2) {
-            fileId = match2[1];
-        }
-
-        // If it's a Google Drive URL, convert it
-        if (fileId && driveUrl.includes('drive.google.com')) {
-            return `https://drive.google.com/uc?export=download&id=${fileId}`;
-        }
-
-        // If it's already a direct URL or not from Drive, return as is
-        return driveUrl;
+        if (match1) return match1[1];
+        if (match2) return match2[1];
+        return null;
     };
 
-    const directUrl = getDirectUrl(url);
+    const fileId = getFileId(url);
 
+    // If it's a Google Drive URL, open it in a new tab instead of embedding
+    if (fileId && url.includes('drive.google.com')) {
+        const playUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+
+        return (
+            <a
+                href={playUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '0.4rem 0.8rem',
+                    background: 'var(--primary-gradient)',
+                    color: 'white',
+                    borderRadius: '6px',
+                    textDecoration: 'none',
+                    fontSize: '0.8rem',
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    transition: 'opacity 0.2s'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+            >
+                <span>▶</span>
+                <span>Reproducir</span>
+            </a>
+        );
+    }
+
+    // For non-Google Drive URLs, use native audio player
     return (
         <audio
             controls
-            src={directUrl}
+            src={url}
             style={{ height: '30px', maxWidth: '200px' }}
             preload="metadata"
         />
