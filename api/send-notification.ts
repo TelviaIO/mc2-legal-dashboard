@@ -55,9 +55,10 @@ export default async function handler(
                 return res.status(400).json({ error: 'Invalid notification type' });
         }
 
-        // Use onboarding@resend.dev as it is the only allowed sender in Test Mode without domain verification
+        // Send from verified domain info@telvia.io
+        // IMPORTANT: Domain telvia.io MUST be verified in Resend dashboard for this to work.
         const emailResponse = await resend.emails.send({
-            from: 'IA Prejudicial <onboarding@resend.dev>',
+            from: 'IA Prejudicial <info@telvia.io>',
             to: RECIPIENTS,
             subject: subject,
             html: html,
