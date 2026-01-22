@@ -9,9 +9,14 @@ interface CreateCallParams {
 
 export async function createCall(params: CreateCallParams): Promise<string> {
     try {
+        console.log('=== Ultravox API Call Debug ===');
         console.log('API_KEY available:', API_KEY ? 'Yes (length: ' + API_KEY.length + ')' : 'No');
-        console.log('API_KEY prefix:', API_KEY ? API_KEY.substring(0, 20) + '...' : 'None');
+        console.log('API_KEY prefix:', API_KEY ? API_KEY.substring(0, 30) + '...' : 'None');
         console.log('Creating call for agent ID:', params.agentId);
+
+        if (!API_KEY) {
+            throw new Error('VITE_ULTRAVOX_API_KEY is not configured. Please set it in Vercel environment variables.');
+        }
 
         // Use agentId instead of systemPrompt - Ultravox expects the agent ID directly
         const requestBody = {
@@ -19,7 +24,8 @@ export async function createCall(params: CreateCallParams): Promise<string> {
             languageHint: 'es'
         };
 
-        console.log('Request body:', requestBody);
+        console.log('Request body:', JSON.stringify(requestBody, null, 2));
+        console.log('API endpoint:', 'https://api.ultravox.ai/api/calls');
 
         const response = await fetch('https://api.ultravox.ai/api/calls', {
             method: 'POST',
@@ -28,6 +34,9 @@ export async function createCall(params: CreateCallParams): Promise<string> {
                 'X-API-Key': API_KEY
             },
             body: JSON.stringify(requestBody)
+        }).catch(err => {
+            console.error('Fetch failed:', err);
+            throw new Error('Network error: Unable to reach Ultravox API. Check CORS settings or API key.');
         });
 
         console.log('Response status:', response.status);
