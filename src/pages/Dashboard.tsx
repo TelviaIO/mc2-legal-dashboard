@@ -100,40 +100,14 @@ const KPICard = ({
 );
 
 const AudioPlayer = ({ url }: { url: string }) => {
-    const [playing, setPlaying] = useState(false);
-    const audioRef = useRef<HTMLAudioElement | null>(null);
-
-    const togglePlay = () => {
-        if (!url) return;
-
-        if (!audioRef.current) {
-            audioRef.current = new Audio(url);
-            audioRef.current.onended = () => setPlaying(false);
-        }
-
-        if (playing) {
-            audioRef.current.pause();
-        } else {
-            audioRef.current.play();
-        }
-        setPlaying(!playing);
-    };
-
     if (!url) return <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>No disponible</span>;
 
     return (
-        <button
-            onClick={togglePlay}
-            style={{
-                padding: '0.3rem 0.8rem',
-                fontSize: '0.8rem',
-                background: playing ? 'var(--primary-gradient)' : '#2a2a2a',
-                border: 'none',
-                borderRadius: '20px'
-            }}
-        >
-            {playing ? 'Pausar' : 'Reproducir'}
-        </button>
+        <audio
+            controls
+            src={url}
+            style={{ height: '30px', maxWidth: '200px' }}
+        />
     );
 };
 
