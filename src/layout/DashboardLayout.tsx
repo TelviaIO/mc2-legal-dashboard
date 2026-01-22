@@ -16,7 +16,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
     return (
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
             <header style={{
-                padding: '1.5rem 2rem',
+                padding: 'clamp(0.75rem, 2vw, 1.5rem) clamp(1rem, 3vw, 2rem)',
                 borderBottom: '1px solid var(--border-color)',
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -25,10 +25,17 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                 backdropFilter: 'blur(10px)',
                 position: 'sticky',
                 top: 0,
-                zIndex: 100
+                zIndex: 100,
+                gap: '1rem',
+                flexWrap: 'wrap'
             }}>
-                <div>
-                    <h2 className="text-gradient" style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700 }}>
+                <div style={{ minWidth: 0, flex: '1 1 auto' }}>
+                    <h2 className="text-gradient" style={{
+                        margin: 0,
+                        fontSize: 'clamp(1rem, 3vw, 1.5rem)',
+                        fontWeight: 700,
+                        wordBreak: 'break-word'
+                    }}>
                         Llamadas con IA de MC2 Legal
                     </h2>
                 </div>
@@ -37,23 +44,31 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
                     style={{
                         background: 'transparent',
                         border: '1px solid var(--border-color)',
-                        fontSize: '0.9rem',
+                        fontSize: 'clamp(0.8rem, 2vw, 0.9rem)',
                         padding: '0.4rem 1rem',
-                        color: 'var(--text-secondary)'
+                        color: 'var(--text-secondary)',
+                        whiteSpace: 'nowrap'
                     }}
                 >
                     Salir
                 </button>
             </header>
 
-            <main style={{ flex: 1, padding: '2rem', maxWidth: '1200px', margin: '0 auto', width: '100%' }}>
+            <main style={{
+                flex: 1,
+                padding: 'clamp(1rem, 3vw, 2rem)',
+                maxWidth: '1200px',
+                margin: '0 auto',
+                width: '100%',
+                boxSizing: 'border-box'
+            }}>
                 {children}
             </main>
 
             <footer style={{
-                padding: '2rem',
+                padding: 'clamp(1rem, 3vw, 2rem)',
                 textAlign: 'center',
-                fontSize: '0.8rem',
+                fontSize: 'clamp(0.7rem, 2vw, 0.8rem)',
                 color: 'var(--text-secondary)',
                 borderTop: '1px solid var(--border-color)',
                 marginTop: 'auto'

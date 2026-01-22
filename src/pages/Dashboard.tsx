@@ -102,13 +102,105 @@ const KPICard = ({
 );
 
 const AudioPlayer = ({ url }: { url: string }) => {
+    const [showPlayer, setShowPlayer] = useState(false);
+
     if (!url) return <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>No disponible</span>;
 
+    // Extract file ID from Google Drive URL
+    const getFileId = (driveUrl: string) => {
+        const match1 = driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        const match2 = driveUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+
+        if (match1) return match1[1];
+        if (match2) return match2[1];
+        return null;
+    };
+
+    const fileId = getFileId(url);
+
+    // If it's a Google Drive URL, embed it with iframe
+    if (fileId && url.includes('drive.google.com')) {
+        const embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+
+        return (
+            <div onClick={(e) => e.stopPropagation()}>
+                {!showPlayer ? (
+                    <button
+                        onClick={() => setShowPlayer(true)}
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.4rem 0.8rem',
+                            background: 'var(--primary-gradient)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '0.8rem',
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            transition: 'opacity 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                    >
+                        <span>▶</span>
+                        <span>Reproducir</span>
+                    </button>
+                ) : (
+                    <div style={{
+                        position: 'relative',
+                        width: '250px',
+                        height: '80px',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        border: '1px solid var(--border-color)'
+                    }}>
+                        <iframe
+                            src={embedUrl}
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                border: 'none'
+                            }}
+                            allow="autoplay"
+                            title="Audio player"
+                        />
+                        <button
+                            onClick={() => setShowPlayer(false)}
+                            style={{
+                                position: 'absolute',
+                                top: '4px',
+                                right: '4px',
+                                background: 'rgba(0,0,0,0.7)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                width: '20px',
+                                height: '20px',
+                                cursor: 'pointer',
+                                fontSize: '0.7rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}
+                            title="Cerrar reproductor"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // For non-Google Drive URLs, use native audio player
     return (
         <audio
             controls
             src={url}
             style={{ height: '30px', maxWidth: '200px' }}
+            preload="metadata"
         />
     );
 };
@@ -351,7 +443,14 @@ const DocumentsSection = () => {
     };
 
     useEffect(() => {
+        // Initial fetch
         fetchDocs();
+
+        // Auto-refresh every 10 seconds
+        const interval = setInterval(fetchDocs, 10000);
+
+        // Cleanup on unmount
+        return () => clearInterval(interval);
     }, []);
 
     const handleSave = async (e: React.FormEvent) => {
@@ -513,7 +612,14 @@ const PendingTasksSection = () => {
     };
 
     useEffect(() => {
+        // Initial fetch
         fetchTasks();
+
+        // Auto-refresh every 10 seconds
+        const interval = setInterval(fetchTasks, 10000);
+
+        // Cleanup on unmount
+        return () => clearInterval(interval);
     }, []);
 
     const handleAdd = async (category: 'mc2' | 'telvia', text: string) => {
@@ -639,7 +745,7 @@ const Dashboard: React.FC = () => {
     // UI State
     const [selectedMetric, setSelectedMetric] = useState<MetricType>('calls');
 
-    // Load Data
+    // Load Data with Auto-Refresh
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -666,7 +772,15 @@ const Dashboard: React.FC = () => {
                 console.error('Error fetching data:', err);
             }
         };
+
+        // Initial fetch
         fetchData();
+
+        // Auto-refresh every 10 seconds
+        const interval = setInterval(fetchData, 10000);
+
+        // Cleanup on unmount
+        return () => clearInterval(interval);
     }, []);
 
     // Filter Logic
@@ -759,13 +873,18 @@ const Dashboard: React.FC = () => {
     }, [filteredCalls]);
 
     const chartData = useMemo(() => {
-        // Group by Day (or Hour if 'day' filter)
-        const grouped: Record<string, number> = {};
+        // Group by Day (or Hour if 'day' filter) with timestamp for sorting
+        const grouped: Record<string, { value: number, timestamp: number }> = {};
 
         filteredCalls.forEach(call => {
             const d = new Date(call.created_at);
             let key = d.toLocaleDateString(); // Default Day
-            if (timeFilter === 'day') key = d.getHours() + ':00'; // Hourly for Day
+            let timestamp = d.getTime();
+
+            if (timeFilter === 'day') {
+                key = d.getHours() + ':00'; // Hourly for Day
+                timestamp = d.setMinutes(0, 0, 0); // Normalize to hour
+            }
 
             let val = 0;
             if (selectedMetric === 'calls') val = 1;
@@ -780,11 +899,18 @@ const Dashboard: React.FC = () => {
             else if (selectedMetric === 'cuelga_antes') val = call.outcome === 'cuelga_antes' ? 1 : 0;
 
             if (val > 0) {
-                grouped[key] = (grouped[key] || 0) + val;
+                if (!grouped[key]) {
+                    grouped[key] = { value: 0, timestamp };
+                }
+                grouped[key].value += val;
             }
         });
 
-        return Object.entries(grouped).map(([name, value]) => ({ name, value }));
+        // Convert to array and sort chronologically (oldest to newest)
+        return Object.entries(grouped)
+            .map(([name, data]) => ({ name, value: data.value, timestamp: data.timestamp }))
+            .sort((a, b) => a.timestamp - b.timestamp)
+            .map(({ name, value }) => ({ name, value }));
     }, [filteredCalls, selectedMetric, timeFilter]);
 
 
@@ -811,37 +937,59 @@ const Dashboard: React.FC = () => {
 
                 {/* Header & Filters */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                    <h2 className="text-gradient" style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Panel de Control</h2>
+                    <h2 className="text-gradient" style={{ fontSize: 'clamp(1.2rem, 4vw, 1.5rem)', fontWeight: 700, margin: 0 }}>Panel de Control</h2>
 
-                    <div style={{ display: 'flex', gap: '0.5rem', background: '#1a1a1a', padding: '0.3rem', borderRadius: '8px' }}>
-                        {(['day', 'week', 'month', 'custom'] as const).map(f => (
-                            <button
-                                key={f}
-                                onClick={() => setTimeFilter(f)}
-                                style={{
-                                    background: timeFilter === f ? 'var(--primary-gradient)' : 'transparent',
-                                    color: 'white',
-                                    border: 'none',
-                                    padding: '0.4rem 1rem',
-                                    borderRadius: '6px',
-                                    fontSize: '0.9rem'
-                                }}
-                            >
-                                {f === 'day' ? 'Hoy' : f === 'week' ? 'Semana' : f === 'month' ? 'Mes' : 'Personalizado'}
-                            </button>
-                        ))}
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                        <a
+                            href="/agents"
+                            style={{
+                                background: 'var(--primary-gradient)',
+                                color: 'white',
+                                border: 'none',
+                                padding: 'clamp(0.4rem, 2vw, 0.5rem) clamp(0.8rem, 3vw, 1.2rem)',
+                                borderRadius: '8px',
+                                fontSize: 'clamp(0.8rem, 2vw, 0.9rem)',
+                                fontWeight: 600,
+                                textDecoration: 'none',
+                                cursor: 'pointer',
+                                display: 'inline-block',
+                                whiteSpace: 'nowrap'
+                            }}
+                        >
+                            Mis Agentes
+                        </a>
+
+                        <div style={{ display: 'flex', gap: '0.3rem', background: '#1a1a1a', padding: '0.3rem', borderRadius: '8px', flexWrap: 'wrap' }}>
+                            {(['day', 'week', 'month', 'custom'] as const).map(f => (
+                                <button
+                                    key={f}
+                                    onClick={() => setTimeFilter(f)}
+                                    style={{
+                                        background: timeFilter === f ? 'var(--primary-gradient)' : 'transparent',
+                                        color: 'white',
+                                        border: 'none',
+                                        padding: 'clamp(0.3rem, 1.5vw, 0.4rem) clamp(0.6rem, 2vw, 1rem)',
+                                        borderRadius: '6px',
+                                        fontSize: 'clamp(0.75rem, 2vw, 0.9rem)',
+                                        whiteSpace: 'nowrap'
+                                    }}
+                                >
+                                    {f === 'day' ? 'Hoy' : f === 'week' ? 'Semana' : f === 'month' ? 'Mes' : 'Personalizado'}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
 
                 {timeFilter === 'custom' && (
-                    <div style={{ display: 'flex', gap: '1rem', marginTop: '-1rem' }}>
-                        <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', background: '#111', border: '1px solid #333', color: 'white' }} />
-                        <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', background: '#111', border: '1px solid #333', color: 'white' }} />
+                    <div style={{ display: 'flex', gap: '1rem', marginTop: '-1rem', flexWrap: 'wrap' }}>
+                        <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', background: '#111', border: '1px solid #333', color: 'white', minWidth: '150px', flex: '1 1 auto' }} />
+                        <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', background: '#111', border: '1px solid #333', color: 'white', minWidth: '150px', flex: '1 1 auto' }} />
                     </div>
                 )}
 
                 {/* KPI Section */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 'clamp(1rem, 2vw, 1.5rem)' }}>
                     <KPICard
                         title="Llamadas Totales"
                         value={stats.totalCalls}
@@ -872,7 +1020,7 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 {/* Outcome KPIs */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 'clamp(0.75rem, 1.5vw, 1rem)' }}>
                     <KPICard title="No Reconoce" value={stats.noReconoce} isActive={selectedMetric === 'no_reconoce_deuda'} onClick={() => setSelectedMetric('no_reconoce_deuda')} />
                     <KPICard title="No Localizado" value={stats.noLocalizado} isActive={selectedMetric === 'no_localizado'} onClick={() => setSelectedMetric('no_localizado')} />
                     <KPICard title="Acepta Pagar" value={stats.aceptaPagar} isActive={selectedMetric === 'acepta_pagar'} onClick={() => setSelectedMetric('acepta_pagar')} />
@@ -912,7 +1060,7 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 {/* Bottom Section: Chat & Documents */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))', gap: 'clamp(1rem, 3vw, 2rem)' }}>
                     <ChatSection />
                     <DocumentsSection />
                 </div>
@@ -921,38 +1069,39 @@ const Dashboard: React.FC = () => {
                 <PendingTasksSection />
 
                 {/* Recent Calls Table */}
-                <div style={{ background: 'var(--card-bg)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>Llamadas Recientes</h3>
+                <div style={{ background: 'var(--card-bg)', padding: 'clamp(1rem, 2vw, 1.5rem)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <h3 style={{ fontSize: 'clamp(0.9rem, 2vw, 1rem)', fontWeight: 600, margin: 0 }}>Llamadas Recientes</h3>
                         <button
                             onClick={handleExportCSV}
                             style={{
                                 background: '#333',
                                 border: '1px solid #444',
                                 color: 'white',
-                                padding: '0.4rem 0.8rem',
+                                padding: 'clamp(0.3rem, 1.5vw, 0.4rem) clamp(0.6rem, 2vw, 0.8rem)',
                                 borderRadius: '6px',
-                                fontSize: '0.8rem',
+                                fontSize: 'clamp(0.75rem, 1.5vw, 0.8rem)',
                                 cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '0.4rem'
+                                gap: '0.4rem',
+                                whiteSpace: 'nowrap'
                             }}
                         >
                             Exportar CSV
                         </button>
                     </div>
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                    <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'clamp(0.8rem, 1.5vw, 0.9rem)', minWidth: '600px' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid #333', color: '#888', textAlign: 'left' }}>
-                                    <th style={{ padding: '1rem' }}>Fecha</th>
-                                    <th style={{ padding: '1rem' }}>Duración</th>
-                                    <th style={{ padding: '1rem' }}>Estado</th>
-                                    <th style={{ padding: '1rem' }}>Teléfono</th>
-                                    <th style={{ padding: '1rem' }}>Resultado</th>
-                                    <th style={{ padding: '1rem' }}>Coste</th>
-                                    <th style={{ padding: '1rem' }}>Grabación</th>
+                                    <th style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', whiteSpace: 'nowrap' }}>Fecha</th>
+                                    <th style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', whiteSpace: 'nowrap' }}>Duración</th>
+                                    <th style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', whiteSpace: 'nowrap' }}>Estado</th>
+                                    <th style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', whiteSpace: 'nowrap' }}>Teléfono</th>
+                                    <th style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', whiteSpace: 'nowrap' }}>Resultado</th>
+                                    <th style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', whiteSpace: 'nowrap' }}>Coste</th>
+                                    <th style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', whiteSpace: 'nowrap' }}>Grabación</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -964,9 +1113,9 @@ const Dashboard: React.FC = () => {
                                         onMouseEnter={(e) => e.currentTarget.style.background = '#1f1f1f'}
                                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                     >
-                                        <td style={{ padding: '1rem' }}>{new Date(call.created_at).toLocaleString()}</td>
-                                        <td style={{ padding: '1rem' }}>{call.t_duration}</td>
-                                        <td style={{ padding: '1rem' }}>
+                                        <td style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', whiteSpace: 'nowrap' }}>{new Date(call.created_at).toLocaleString()}</td>
+                                        <td style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)' }}>{call.t_duration}</td>
+                                        <td style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)' }}>
                                             <span style={{
                                                 padding: '0.2rem 0.6rem',
                                                 borderRadius: '12px',
@@ -977,10 +1126,10 @@ const Dashboard: React.FC = () => {
                                                 {call.t_status === 'completed' ? 'Completada' : 'Perdida'}
                                             </span>
                                         </td>
-                                        <td style={{ padding: '1rem', color: '#ccc' }}>{call.phone_number || '-'}</td>
-                                        <td style={{ padding: '1rem', color: '#ccc' }}>{call.outcome?.replace(/_/g, ' ') || '-'}</td>
-                                        <td style={{ padding: '1rem' }}>{call.n_cost ? `${call.n_cost.toFixed(2)}€` : '0.00€'}</td>
-                                        <td style={{ padding: '1rem' }}>
+                                        <td style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', color: '#ccc' }}>{call.phone_number || '-'}</td>
+                                        <td style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', color: '#ccc' }}>{call.outcome?.replace(/_/g, ' ') || '-'}</td>
+                                        <td style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', whiteSpace: 'nowrap' }}>{call.n_cost ? `${call.n_cost.toFixed(2)}€` : '0.00€'}</td>
+                                        <td style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)' }}>
                                             <div onClick={(e) => e.stopPropagation()}>
                                                 <AudioPlayer url={call.t_recording_url} />
                                             </div>
