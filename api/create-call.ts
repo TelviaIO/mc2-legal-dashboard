@@ -28,13 +28,16 @@ export default async function handler(
         console.log('API Key present:', !!API_KEY);
         console.log('API Key length:', API_KEY?.length);
 
+        // agentId goes as a query parameter, not in the body
+        const url = `https://api.ultravox.ai/api/calls?agentId=${encodeURIComponent(agentId)}`;
+        console.log('Request URL:', url);
+
         const requestBody = {
-            agentId: agentId,
             languageHint: 'es'
         };
         console.log('Request body:', JSON.stringify(requestBody));
 
-        const response = await fetch('https://api.ultravox.ai/api/calls', {
+        const response = await fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
