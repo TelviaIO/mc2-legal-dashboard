@@ -640,8 +640,7 @@ const PendingTasksSection = () => {
         await supabase.from('tasks').delete().eq('id', id);
     };
 
-    const handleComplete = async (id: string, e: React.MouseEvent) => {
-        e.stopPropagation();
+    const handleComplete = async (id: string) => {
         setTasks(prev => prev.filter(t => t.id !== id));
 
         const { error } = await supabase
@@ -667,7 +666,7 @@ const PendingTasksSection = () => {
                     }}>
                         <input
                             type="checkbox"
-                            onChange={(e) => handleComplete(task.id, e)}
+                            onChange={() => handleComplete(task.id)}
                             style={{ cursor: 'pointer', width: '16px', height: '16px', flexShrink: 0 }}
                         />
                         <span style={{ flex: 1 }}>{task.text}</span>
