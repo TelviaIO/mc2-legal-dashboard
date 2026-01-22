@@ -32,9 +32,7 @@ export default async function handler(
         const url = `https://api.ultravox.ai/api/agents/${agentId}/calls`;
         console.log('Request URL:', url);
 
-        const requestBody = {
-            languageHint: 'es'
-        };
+        const requestBody = {};
         console.log('Request body:', JSON.stringify(requestBody));
 
         const response = await fetch(url, {
