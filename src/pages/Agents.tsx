@@ -45,14 +45,52 @@ const Agents: React.FC = () => {
         try {
             setCallStatus('Iniciando llamada...');
 
+            const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVicHR1d2FscXVxZXllYWhzcHdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwMDQ5MDQsImV4cCI6MjA4NDU4MDkwNH0.Ts6R3rwM6sKXR8stiXvPNFuJxfwnkl8i5Zopm8RYBzg';
+
+            // Create a new call using Ultravox API
+            const response = await fetch('https://api.ultravox.ai/api/calls', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-Key': API_KEY
+                },
+                body: JSON.stringify({
+                    systemPrompt: selectedAgent.id,
+                    model: 'fixie-ai/ultravox',
+                    voice: 'Mark',
+                    languageHint: 'es'
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const callData = await response.json();
+            console.log('Call created:', callData);
+
             // Initialize Ultravox client
             const UltravoxSession = (window as any).UltravoxSession;
+            if (!UltravoxSession) {
+                throw new Error('Ultravox SDK not loaded');
+            }
+
             const client = new UltravoxSession();
             uvClientRef.current = client;
 
             // Set up event listeners
             client.addEventListener('status', (event: any) => {
-                setCallStatus(`Estado: ${event.state}`);
+                console.log('Status event:', event);
+                const statusMap: Record<string, string> = {
+                    'disconnected': 'Desconectado',
+                    'disconnecting': 'Desconectando...',
+                    'idle': 'Inactivo',
+                    'listening': 'Escuchando...',
+                    'thinking': 'Pensando...',
+                    'speaking': 'Hablando...'
+                };
+                setCallStatus(statusMap[event.state] || event.state);
+
                 if (event.state === 'disconnected') {
                     setIsCallActive(false);
                 }
@@ -62,17 +100,14 @@ const Agents: React.FC = () => {
                 console.log('Transcript:', event);
             });
 
-            // Join call with agent
-            await client.joinCall({
-                callId: selectedAgent.id,
-                clientVersion: '1.0.0'
-            });
+            // Join the call with the joinUrl from the API response
+            await client.joinCall(callData.joinUrl);
 
             setIsCallActive(true);
-            setCallStatus('Llamada activa');
+            setCallStatus('Conectado');
         } catch (error) {
             console.error('Error starting call:', error);
-            setCallStatus('Error al iniciar llamada');
+            setCallStatus(`Error: ${error instanceof Error ? error.message : 'Desconocido'}`);
             setIsCallActive(false);
         }
     };
