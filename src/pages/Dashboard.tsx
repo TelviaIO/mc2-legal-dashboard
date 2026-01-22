@@ -247,6 +247,21 @@ const ChatSection = () => {
         setLoading(false);
     };
 
+    // Send email notification
+    const sendNotification = async (type: string, data: any) => {
+        try {
+            await fetch('/api/send-notification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ type, data }),
+            });
+        } catch (error) {
+            console.error('Error sending notification:', error);
+        }
+    };
+
     const handleSend = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!input.trim()) return;
@@ -293,6 +308,13 @@ const ChatSection = () => {
                 setMessages(prev => prev.filter(m => m.id !== tempId));
             } else if (data && data.length > 0) {
                 setMessages(prev => prev.map(m => m.id === tempId ? (data[0] as Message) : m));
+                // Send email notification
+                sendNotification('feedback_created', {
+                    text,
+                    author_name: currentAuthor
+                }).catch(err =>
+                    console.error('Error sending notification:', err)
+                );
             }
         }
     };
@@ -627,6 +649,21 @@ const PendingTasksSection = () => {
         return () => clearInterval(interval);
     }, []);
 
+    // Send email notification
+    const sendNotification = async (type: string, data: any) => {
+        try {
+            await fetch('/api/send-notification', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ type, data }),
+            });
+        } catch (error) {
+            console.error('Error sending notification:', error);
+        }
+    };
+
     const handleAdd = async (category: 'mc2' | 'telvia', text: string) => {
         if (!text.trim()) return;
 
@@ -635,7 +672,13 @@ const PendingTasksSection = () => {
 
         const { error } = await supabase.from('tasks').insert([{ text, category }]);
         if (error) console.error('Error adding task:', error);
-        else fetchTasks();
+        else {
+            fetchTasks();
+            // Send email notification
+            sendNotification('task_created', { text, category }).catch(err =>
+                console.error('Error sending notification:', err)
+            );
+        }
     };
 
     const handleDelete = async (id: string, e: React.MouseEvent) => {
@@ -646,6 +689,9 @@ const PendingTasksSection = () => {
     };
 
     const handleComplete = async (id: string) => {
+        // Get task data before completing
+        const task = tasks.find(t => t.id === id);
+
         setTasks(prev => prev.filter(t => t.id !== id));
 
         const { error } = await supabase
@@ -656,6 +702,14 @@ const PendingTasksSection = () => {
         if (error) {
             console.error('Error completing task:', error);
             fetchTasks();
+        } else if (task) {
+            // Send email notification
+            sendNotification('task_completed', {
+                text: task.text,
+                category: task.category
+            }).catch(err =>
+                console.error('Error sending notification:', err)
+            );
         }
     };
 
