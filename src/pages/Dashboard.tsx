@@ -606,9 +606,14 @@ const PendingTasksSection = () => {
         const { data } = await supabase
             .from('tasks')
             .select('*')
-            .is('completed_at', null)
             .order('created_at', { ascending: true });
-        if (data) setTasks(data as Task[]);
+
+        if (data) {
+            // Filter on the client side to show only pending tasks
+            // This handles both NULL and undefined completed_at values
+            const pendingTasks = data.filter(task => !task.completed_at);
+            setTasks(pendingTasks as Task[]);
+        }
     };
 
     useEffect(() => {
