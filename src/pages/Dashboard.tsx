@@ -250,15 +250,29 @@ const ChatSection = () => {
     // Send email notification
     const sendNotification = async (type: string, data: any) => {
         try {
-            await fetch('/api/send-notification', {
+            console.log(`Sending notification: ${type}`, data);
+            const res = await fetch('/api/send-notification', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ type, data }),
             });
+
+            console.log(`Notification ${type} response status:`, res.status);
+
+            if (!res.ok) {
+                const errText = await res.text();
+                console.error(`Notification ${type} failed:`, errText);
+                alert(`Error al enviar notificación: ${res.status} - ${errText}`);
+            } else {
+                console.log(`Notification ${type} sent successfully`);
+                // Uncomment to confirm success in UI:
+                // alert('Notificación enviada correctamente');
+            }
         } catch (error) {
             console.error('Error sending notification:', error);
+            alert(`Error de conexión para notificación: ${error}`);
         }
     };
 
