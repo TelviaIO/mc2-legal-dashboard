@@ -3,6 +3,7 @@ import DashboardLayout from '../layout/DashboardLayout';
 import { supabase } from '../lib/supabase';
 import { mockCalls } from '../data/mockData';
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from 'recharts';
+import { useNavigate } from 'react-router-dom';
 
 // Types
 interface Call {
@@ -39,6 +40,7 @@ interface Task {
     text: string;
     category: 'mc2' | 'telvia';
     created_at: string;
+    completed_at?: string;
 }
 
 type TimeFilter = 'day' | 'week' | 'month' | 'custom';
@@ -327,16 +329,8 @@ const ChatSection = () => {
             height: '500px',
             overflow: 'hidden'
         }}>
-            <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', background: '#1a1a1a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color)', background: '#1a1a1a' }}>
                 <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>Feedback Equipo</h3>
-                <input
-                    placeholder="Tu Nombre"
-                    value={authorName}
-                    onChange={(e) => setAuthorName(e.target.value)}
-                    style={{
-                        background: '#333', border: 'none', color: 'white', padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '0.8rem', width: '120px'
-                    }}
-                />
             </div>
 
             <div ref={messagesContainerRef} style={{ flex: 1, padding: '1rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -392,25 +386,44 @@ const ChatSection = () => {
                 )}
             </div>
 
-            <form onSubmit={handleSend} style={{ padding: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                {editingId && (
-                    <button type="button" onClick={cancelEdit} style={{ background: '#333', color: '#fff', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer' }}>✕</button>
-                )}
-                <input
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder={editingId ? "Editando mensaje..." : "Escribe un mensaje..."}
-                    style={{
-                        flex: 1,
-                        padding: '0.8rem',
-                        borderRadius: '8px',
-                        background: '#0a0a0a',
-                        border: '1px solid var(--border-color)',
-                        color: 'white',
-                        outline: 'none'
-                    }}
-                />
-                <button type="submit" className="bg-gradient" style={{ borderRadius: '8px' }}>{editingId ? 'Actualizar' : 'Enviar'}</button>
+            <form onSubmit={handleSend} style={{ padding: '1rem', borderTop: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
+                    <label style={{ fontSize: '0.75rem', color: '#888', fontWeight: 500 }}>Tu nombre</label>
+                    <input
+                        placeholder="Nombre requerido"
+                        value={authorName}
+                        onChange={(e) => setAuthorName(e.target.value)}
+                        style={{
+                            background: '#0a0a0a',
+                            border: '1px solid var(--border-color)',
+                            color: 'white',
+                            padding: '0.6rem 0.8rem',
+                            borderRadius: '6px',
+                            fontSize: '0.9rem',
+                            outline: 'none'
+                        }}
+                    />
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    {editingId && (
+                        <button type="button" onClick={cancelEdit} style={{ background: '#333', color: '#fff', border: 'none', borderRadius: '50%', width: '30px', height: '30px', cursor: 'pointer' }}>✕</button>
+                    )}
+                    <input
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        placeholder={editingId ? "Editando mensaje..." : "Escribe un mensaje..."}
+                        style={{
+                            flex: 1,
+                            padding: '0.8rem',
+                            borderRadius: '8px',
+                            background: '#0a0a0a',
+                            border: '1px solid var(--border-color)',
+                            color: 'white',
+                            outline: 'none'
+                        }}
+                    />
+                    <button type="submit" className="bg-gradient" style={{ borderRadius: '8px' }}>{editingId ? 'Actualizar' : 'Enviar'}</button>
+                </div>
             </form>
         </div>
     );
@@ -587,9 +600,14 @@ const PendingTasksSection = () => {
     const [mc2Input, setMc2Input] = useState('');
     const [telviaInput, setTelviaInput] = useState('');
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const navigate = useNavigate();
 
     const fetchTasks = async () => {
-        const { data } = await supabase.from('tasks').select('*').order('created_at', { ascending: true });
+        const { data } = await supabase
+            .from('tasks')
+            .select('*')
+            .is('completed_at', null)
+            .order('created_at', { ascending: true });
         if (data) setTasks(data as Task[]);
     };
 
@@ -622,6 +640,20 @@ const PendingTasksSection = () => {
         await supabase.from('tasks').delete().eq('id', id);
     };
 
+    const handleComplete = async (id: string) => {
+        setTasks(prev => prev.filter(t => t.id !== id));
+
+        const { error } = await supabase
+            .from('tasks')
+            .update({ completed_at: new Date().toISOString() })
+            .eq('id', id);
+
+        if (error) {
+            console.error('Error completing task:', error);
+            fetchTasks();
+        }
+    };
+
     const renderColumn = (title: string, category: 'mc2' | 'telvia', inputVal: string, setInputVal: (s: string) => void) => (
         <div style={{ flex: 1, background: '#1a1a1a', borderRadius: '8px', padding: '1rem', display: 'flex', flexDirection: 'column' }}>
             <h4 style={{ marginBottom: '1rem', fontSize: '0.9rem', color: 'var(--text-secondary)', borderBottom: '1px solid #333', paddingBottom: '0.5rem' }}>
@@ -630,9 +662,14 @@ const PendingTasksSection = () => {
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '0.5rem', marginBottom: '1rem' }}>
                 {tasks.filter(t => t.category === category).map(task => (
                     <div key={task.id} style={{
-                        background: '#252525', padding: '0.8rem', borderRadius: '6px', fontSize: '0.9rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                        background: '#252525', padding: '0.8rem', borderRadius: '6px', fontSize: '0.9rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.5rem'
                     }}>
-                        <span>{task.text}</span>
+                        <input
+                            type="checkbox"
+                            onChange={() => handleComplete(task.id)}
+                            style={{ cursor: 'pointer', width: '16px', height: '16px', flexShrink: 0 }}
+                        />
+                        <span style={{ flex: 1 }}>{task.text}</span>
                         {confirmDeleteId === task.id ? (
                             <div style={{ display: 'flex', gap: '0.3rem' }}>
                                 <button onClick={(e) => handleDelete(task.id, e)} style={{ border: 'none', background: 'none', color: '#ff6b6b', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.75rem' }}>Sí</button>
@@ -664,7 +701,26 @@ const PendingTasksSection = () => {
             borderRadius: '12px',
             border: '1px solid var(--border-color)',
         }}>
-            <h3 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>Tareas Pendientes</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>Tareas Pendientes</h3>
+                <button
+                    onClick={() => navigate('/completed-tasks')}
+                    style={{
+                        background: '#333',
+                        border: '1px solid #444',
+                        color: 'white',
+                        padding: '0.4rem 0.8rem',
+                        borderRadius: '6px',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem'
+                    }}
+                >
+                    Ver Tareas Completadas →
+                </button>
+            </div>
             <div style={{ display: 'flex', gap: '1.5rem', flexDirection: 'row', flexWrap: 'wrap' }}>
                 {renderColumn('Pendiente MC2 Legal', 'mc2', mc2Input, setMc2Input)}
                 {renderColumn('Pendiente Telvia', 'telvia', telviaInput, setTelviaInput)}
