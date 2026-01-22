@@ -20,7 +20,7 @@ const Agents: React.FC = () => {
     const agents: Agent[] = [
         {
             id: '36b1efef-2ffa-4a92-9c02-af3d2d0689d3',
-            name: 'Agente de Cobranza',
+            name: 'Agente Outbound V1',
             description: 'Agente especializado en gestión de deudas y cobros',
             status: 'active'
         }
