@@ -9,10 +9,11 @@ export default async function handler(
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const API_KEY = process.env.VITE_ULTRAVOX_API_KEY;
+    // Try both with and without VITE_ prefix
+    const API_KEY = process.env.ULTRAVOX_API_KEY || process.env.VITE_ULTRAVOX_API_KEY;
 
     if (!API_KEY) {
-        console.error('VITE_ULTRAVOX_API_KEY is not set');
+        console.error('ULTRAVOX_API_KEY or VITE_ULTRAVOX_API_KEY is not set');
         return res.status(500).json({ error: 'Server configuration error: API key not found' });
     }
 
@@ -24,6 +25,14 @@ export default async function handler(
 
     try {
         console.log('Creating call for agent:', agentId);
+        console.log('API Key present:', !!API_KEY);
+        console.log('API Key length:', API_KEY?.length);
+
+        const requestBody = {
+            agentId: agentId,
+            languageHint: 'es'
+        };
+        console.log('Request body:', JSON.stringify(requestBody));
 
         const response = await fetch('https://api.ultravox.ai/api/calls', {
             method: 'POST',
@@ -31,18 +40,28 @@ export default async function handler(
                 'Content-Type': 'application/json',
                 'X-API-Key': API_KEY
             },
-            body: JSON.stringify({
-                agentId: agentId,
-                languageHint: 'es'
-            })
+            body: JSON.stringify(requestBody)
         });
+
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
 
         if (!response.ok) {
             const errorText = await response.text();
             console.error('Ultravox API error:', response.status, errorText);
+
+            // Try to parse as JSON for better error details
+            let errorDetails;
+            try {
+                errorDetails = JSON.parse(errorText);
+            } catch {
+                errorDetails = errorText;
+            }
+
             return res.status(response.status).json({
                 error: 'Failed to create call',
-                details: errorText
+                details: errorDetails,
+                status: response.status
             });
         }
 
