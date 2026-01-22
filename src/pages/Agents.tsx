@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import DashboardLayout from '../layout/DashboardLayout';
+import { UltravoxSession } from 'ultravox-client';
+import { createCall } from '../lib/ultravox';
 
 interface Agent {
     id: string;
@@ -12,7 +14,7 @@ const Agents: React.FC = () => {
     const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
     const [isCallActive, setIsCallActive] = useState(false);
     const [callStatus, setCallStatus] = useState<string>('');
-    const uvClientRef = useRef<any>(null);
+    const uvSessionRef = useRef<UltravoxSession | null>(null);
 
     // Agent data - currently only one agent
     const agents: Agent[] = [
@@ -25,16 +27,10 @@ const Agents: React.FC = () => {
     ];
 
     useEffect(() => {
-        // Load Ultravox SDK
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/ultravox-client@latest/dist/ultravox-client.min.js';
-        script.async = true;
-        document.body.appendChild(script);
-
         return () => {
-            document.body.removeChild(script);
-            if (uvClientRef.current) {
-                uvClientRef.current.disconnect();
+            // Cleanup on unmount
+            if (uvSessionRef.current) {
+                uvSessionRef.current.leaveCall();
             }
         };
     }, []);
@@ -44,42 +40,22 @@ const Agents: React.FC = () => {
 
         try {
             setCallStatus('Iniciando llamada...');
+            setIsCallActive(true);
 
-            const API_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVicHR1d2FscXVxZXllYWhzcHdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwMDQ5MDQsImV4cCI6MjA4NDU4MDkwNH0.Ts6R3rwM6sKXR8stiXvPNFuJxfwnkl8i5Zopm8RYBzg';
-
-            // Create a new call using Ultravox API
-            const response = await fetch('https://api.ultravox.ai/api/calls', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-API-Key': API_KEY
-                },
-                body: JSON.stringify({
-                    systemPrompt: selectedAgent.id,
-                    model: 'fixie-ai/ultravox',
-                    voice: 'Mark',
-                    languageHint: 'es'
-                })
+            // Step 1: Create call and get joinUrl
+            console.log('Creating call for agent:', selectedAgent.id);
+            const joinUrl = await createCall({
+                agentId: selectedAgent.id,
+                systemPrompt: selectedAgent.id
             });
+            console.log('Got joinUrl:', joinUrl);
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
+            // Step 2: Initialize Ultravox session
+            const session = new UltravoxSession();
+            uvSessionRef.current = session;
 
-            const callData = await response.json();
-            console.log('Call created:', callData);
-
-            // Initialize Ultravox client
-            const UltravoxSession = (window as any).UltravoxSession;
-            if (!UltravoxSession) {
-                throw new Error('Ultravox SDK not loaded');
-            }
-
-            const client = new UltravoxSession();
-            uvClientRef.current = client;
-
-            // Set up event listeners
-            client.addEventListener('status', (event: any) => {
+            // Step 3: Set up event listeners
+            session.addEventListener('status', (event) => {
                 console.log('Status event:', event);
                 const statusMap: Record<string, string> = {
                     'disconnected': 'Desconectado',
@@ -93,18 +69,26 @@ const Agents: React.FC = () => {
 
                 if (event.state === 'disconnected') {
                     setIsCallActive(false);
+                    setCallStatus('');
                 }
             });
 
-            client.addEventListener('transcripts', (event: any) => {
+            session.addEventListener('transcripts', (event) => {
                 console.log('Transcript:', event);
             });
 
-            // Join the call with the joinUrl from the API response
-            await client.joinCall(callData.joinUrl);
+            session.addEventListener('error', (event) => {
+                console.error('Session error:', event);
+                setCallStatus('Error en la sesión');
+                setIsCallActive(false);
+            });
 
-            setIsCallActive(true);
-            setCallStatus('Conectado');
+            // Step 4: Join the call
+            console.log('Joining call...');
+            await session.joinCall(joinUrl);
+            console.log('Call joined successfully');
+
+            setCallStatus('Conectado - Puedes empezar a hablar');
         } catch (error) {
             console.error('Error starting call:', error);
             setCallStatus(`Error: ${error instanceof Error ? error.message : 'Desconocido'}`);
@@ -113,9 +97,10 @@ const Agents: React.FC = () => {
     };
 
     const endCall = () => {
-        if (uvClientRef.current) {
-            uvClientRef.current.disconnect();
-            uvClientRef.current = null;
+        if (uvSessionRef.current) {
+            console.log('Ending call...');
+            uvSessionRef.current.leaveCall();
+            uvSessionRef.current = null;
         }
         setIsCallActive(false);
         setCallStatus('');

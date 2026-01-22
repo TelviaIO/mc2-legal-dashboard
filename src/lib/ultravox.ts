@@ -1,0 +1,46 @@
+// Ultravox API helper
+// Note: In production, this should be moved to a backend API endpoint
+
+const API_KEY = import.meta.env.VITE_ULTRAVOX_API_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVicHR1d2FscXVxZXllYWhzcHdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjkwMDQ5MDQsImV4cCI6MjA4NDU4MDkwNH0.Ts6R3rwM6sKXR8stiXvPNFuJxfwnkl8i5Zopm8RYBzg';
+
+interface CreateCallParams {
+    agentId: string;
+    systemPrompt?: string;
+}
+
+export async function createCall(params: CreateCallParams): Promise<string> {
+    try {
+        const response = await fetch('https://api.ultravox.ai/api/calls', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-API-Key': API_KEY
+            },
+            body: JSON.stringify({
+                systemPrompt: params.systemPrompt || `Agent ID: ${params.agentId}`,
+                model: 'fixie-ai/ultravox',
+                voice: 'Mark',
+                languageHint: 'es',
+                temperature: 0.8
+            })
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('API Error:', errorText);
+            throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
+        }
+
+        const callData = await response.json();
+        console.log('Call created successfully:', callData);
+
+        if (!callData.joinUrl) {
+            throw new Error('No joinUrl received from API');
+        }
+
+        return callData.joinUrl;
+    } catch (error) {
+        console.error('Error creating call:', error);
+        throw error;
+    }
+}
