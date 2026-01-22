@@ -26,7 +26,9 @@ export async function createCall(params: CreateCallParams): Promise<string> {
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
             console.error('API Error Response:', errorData);
-            throw new Error(`HTTP error! status: ${response.status} - ${errorData.error || 'Unknown error'}`);
+            console.error('Full error details:', JSON.stringify(errorData, null, 2));
+            const errorMessage = errorData.details ? JSON.stringify(errorData.details) : (errorData.error || 'Unknown error');
+            throw new Error(`HTTP error! status: ${response.status} - ${errorMessage}`);
         }
 
         const callData = await response.json();
