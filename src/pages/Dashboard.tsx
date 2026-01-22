@@ -816,13 +816,18 @@ const Dashboard: React.FC = () => {
     }, [filteredCalls]);
 
     const chartData = useMemo(() => {
-        // Group by Day (or Hour if 'day' filter)
-        const grouped: Record<string, number> = {};
+        // Group by Day (or Hour if 'day' filter) with timestamp for sorting
+        const grouped: Record<string, { value: number, timestamp: number }> = {};
 
         filteredCalls.forEach(call => {
             const d = new Date(call.created_at);
             let key = d.toLocaleDateString(); // Default Day
-            if (timeFilter === 'day') key = d.getHours() + ':00'; // Hourly for Day
+            let timestamp = d.getTime();
+
+            if (timeFilter === 'day') {
+                key = d.getHours() + ':00'; // Hourly for Day
+                timestamp = d.setMinutes(0, 0, 0); // Normalize to hour
+            }
 
             let val = 0;
             if (selectedMetric === 'calls') val = 1;
@@ -837,11 +842,18 @@ const Dashboard: React.FC = () => {
             else if (selectedMetric === 'cuelga_antes') val = call.outcome === 'cuelga_antes' ? 1 : 0;
 
             if (val > 0) {
-                grouped[key] = (grouped[key] || 0) + val;
+                if (!grouped[key]) {
+                    grouped[key] = { value: 0, timestamp };
+                }
+                grouped[key].value += val;
             }
         });
 
-        return Object.entries(grouped).map(([name, value]) => ({ name, value }));
+        // Convert to array and sort chronologically (oldest to newest)
+        return Object.entries(grouped)
+            .map(([name, data]) => ({ name, value: data.value, timestamp: data.timestamp }))
+            .sort((a, b) => a.timestamp - b.timestamp)
+            .map(({ name, value }) => ({ name, value }));
     }, [filteredCalls, selectedMetric, timeFilter]);
 
 
