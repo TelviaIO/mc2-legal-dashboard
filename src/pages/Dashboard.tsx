@@ -102,11 +102,42 @@ const KPICard = ({
 const AudioPlayer = ({ url }: { url: string }) => {
     if (!url) return <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>No disponible</span>;
 
+    // Convert Google Drive URLs to direct download format
+    const getDirectUrl = (driveUrl: string) => {
+        // Handle different Google Drive URL formats
+        // Format 1: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
+        // Format 2: https://drive.google.com/open?id=FILE_ID
+        // Convert to: https://drive.google.com/uc?export=download&id=FILE_ID
+
+        let fileId = '';
+
+        // Try to extract file ID from various formats
+        const match1 = driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
+        const match2 = driveUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+
+        if (match1) {
+            fileId = match1[1];
+        } else if (match2) {
+            fileId = match2[1];
+        }
+
+        // If it's a Google Drive URL, convert it
+        if (fileId && driveUrl.includes('drive.google.com')) {
+            return `https://drive.google.com/uc?export=download&id=${fileId}`;
+        }
+
+        // If it's already a direct URL or not from Drive, return as is
+        return driveUrl;
+    };
+
+    const directUrl = getDirectUrl(url);
+
     return (
         <audio
             controls
-            src={url}
+            src={directUrl}
             style={{ height: '30px', maxWidth: '200px' }}
+            preload="metadata"
         />
     );
 };
