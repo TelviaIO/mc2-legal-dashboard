@@ -100,6 +100,8 @@ const KPICard = ({
 );
 
 const AudioPlayer = ({ url }: { url: string }) => {
+    const [showPlayer, setShowPlayer] = useState(false);
+
     if (!url) return <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>No disponible</span>;
 
     // Extract file ID from Google Drive URL
@@ -114,36 +116,79 @@ const AudioPlayer = ({ url }: { url: string }) => {
 
     const fileId = getFileId(url);
 
-    // If it's a Google Drive URL, open it in a new tab instead of embedding
+    // If it's a Google Drive URL, embed it with iframe
     if (fileId && url.includes('drive.google.com')) {
-        const playUrl = `https://drive.google.com/file/d/${fileId}/preview`;
+        const embedUrl = `https://drive.google.com/file/d/${fileId}/preview`;
 
         return (
-            <a
-                href={playUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={(e) => e.stopPropagation()}
-                style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    padding: '0.4rem 0.8rem',
-                    background: 'var(--primary-gradient)',
-                    color: 'white',
-                    borderRadius: '6px',
-                    textDecoration: 'none',
-                    fontSize: '0.8rem',
-                    fontWeight: 500,
-                    cursor: 'pointer',
-                    transition: 'opacity 0.2s'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
-                onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-            >
-                <span>▶</span>
-                <span>Reproducir</span>
-            </a>
+            <div onClick={(e) => e.stopPropagation()}>
+                {!showPlayer ? (
+                    <button
+                        onClick={() => setShowPlayer(true)}
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            padding: '0.4rem 0.8rem',
+                            background: 'var(--primary-gradient)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            fontSize: '0.8rem',
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            transition: 'opacity 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                    >
+                        <span>▶</span>
+                        <span>Reproducir</span>
+                    </button>
+                ) : (
+                    <div style={{
+                        position: 'relative',
+                        width: '250px',
+                        height: '80px',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        border: '1px solid var(--border-color)'
+                    }}>
+                        <iframe
+                            src={embedUrl}
+                            style={{
+                                width: '100%',
+                                height: '100%',
+                                border: 'none'
+                            }}
+                            allow="autoplay"
+                            title="Audio player"
+                        />
+                        <button
+                            onClick={() => setShowPlayer(false)}
+                            style={{
+                                position: 'absolute',
+                                top: '4px',
+                                right: '4px',
+                                background: 'rgba(0,0,0,0.7)',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                width: '20px',
+                                height: '20px',
+                                cursor: 'pointer',
+                                fontSize: '0.7rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center'
+                            }}
+                            title="Cerrar reproductor"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                )}
+            </div>
         );
     }
 
