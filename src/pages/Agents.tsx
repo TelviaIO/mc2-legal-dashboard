@@ -45,8 +45,7 @@ const Agents: React.FC = () => {
             // Step 1: Create call and get joinUrl
             console.log('Creating call for agent:', selectedAgent.id);
             const joinUrl = await createCall({
-                agentId: selectedAgent.id,
-                systemPrompt: selectedAgent.id
+                agentId: selectedAgent.id
             });
             console.log('Got joinUrl:', joinUrl);
 

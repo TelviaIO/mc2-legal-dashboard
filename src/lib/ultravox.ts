@@ -5,20 +5,18 @@ const API_KEY = import.meta.env.VITE_ULTRAVOX_API_KEY || 'eyJhbGciOiJIUzI1NiIsIn
 
 interface CreateCallParams {
     agentId: string;
-    systemPrompt?: string;
 }
 
 export async function createCall(params: CreateCallParams): Promise<string> {
     try {
         console.log('API_KEY available:', API_KEY ? 'Yes (length: ' + API_KEY.length + ')' : 'No');
         console.log('API_KEY prefix:', API_KEY ? API_KEY.substring(0, 20) + '...' : 'None');
+        console.log('Creating call for agent ID:', params.agentId);
 
+        // Use agentId instead of systemPrompt - Ultravox expects the agent ID directly
         const requestBody = {
-            systemPrompt: params.systemPrompt || `Agent ID: ${params.agentId}`,
-            model: 'fixie-ai/ultravox',
-            voice: 'Mark',
-            languageHint: 'es',
-            temperature: 0.8
+            agentId: params.agentId,
+            languageHint: 'es'
         };
 
         console.log('Request body:', requestBody);
