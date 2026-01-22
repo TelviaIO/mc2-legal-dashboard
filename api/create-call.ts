@@ -28,8 +28,8 @@ export default async function handler(
         console.log('API Key present:', !!API_KEY);
         console.log('API Key length:', API_KEY?.length);
 
-        // agentId goes as a query parameter, not in the body
-        const url = `https://api.ultravox.ai/api/calls?agentId=${encodeURIComponent(agentId)}`;
+        // agentId goes in the URL path
+        const url = `https://api.ultravox.ai/api/agents/${agentId}/calls`;
         console.log('Request URL:', url);
 
         const requestBody = {
