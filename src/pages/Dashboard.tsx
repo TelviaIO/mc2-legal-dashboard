@@ -102,28 +102,28 @@ const KPICard = ({
 const AudioPlayer = ({ url }: { url: string }) => {
     if (!url) return <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>No disponible</span>;
 
-    // Convert Google Drive URLs to direct download format
+    // Convert Google Drive URLs to direct stream format
     const getDirectUrl = (driveUrl: string) => {
         // Handle different Google Drive URL formats
-        // Format 1: https://drive.google.com/file/d/FILE_ID/view?usp=sharing
-        // Format 2: https://drive.google.com/open?id=FILE_ID
-        // Convert to: https://drive.google.com/uc?export=download&id=FILE_ID
-
         let fileId = '';
 
         // Try to extract file ID from various formats
         const match1 = driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/);
         const match2 = driveUrl.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+        const match3 = driveUrl.match(/[-\w]{25,}/); // Direct file ID
 
         if (match1) {
             fileId = match1[1];
         } else if (match2) {
             fileId = match2[1];
+        } else if (match3 && driveUrl.includes('drive.google.com')) {
+            fileId = match3[0];
         }
 
-        // If it's a Google Drive URL, convert it
+        // If it's a Google Drive URL, convert to streaming format
         if (fileId && driveUrl.includes('drive.google.com')) {
-            return `https://drive.google.com/uc?export=download&id=${fileId}`;
+            // Use uc?export=open for streaming instead of download
+            return `https://drive.google.com/uc?export=open&id=${fileId}`;
         }
 
         // If it's already a direct URL or not from Drive, return as is
@@ -132,12 +132,20 @@ const AudioPlayer = ({ url }: { url: string }) => {
 
     const directUrl = getDirectUrl(url);
 
+    // Log for debugging
+    console.log('Original URL:', url);
+    console.log('Converted URL:', directUrl);
+
     return (
         <audio
             controls
             src={directUrl}
             style={{ height: '30px', maxWidth: '200px' }}
             preload="metadata"
+            onError={(e) => {
+                console.error('Audio load error:', e);
+                console.error('Failed URL:', directUrl);
+            }}
         />
     );
 };
