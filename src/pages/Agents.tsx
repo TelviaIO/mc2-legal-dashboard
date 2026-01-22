@@ -302,29 +302,9 @@ const Agents: React.FC = () => {
                             <ul style={{ fontSize: '0.85rem', color: '#666', paddingLeft: '1.2rem', margin: 0 }}>
                                 <li>El agente está disponible 24/7 para realizar llamadas</li>
                                 <li>Puedes probar el agente directamente desde aquí</li>
-                                <li>Las llamadas de prueba no se registran en el sistema</li>
                             </ul>
                         </div>
 
-                        <div style={{
-                            marginTop: '1rem',
-                            padding: '1rem',
-                            background: '#2a1a1a',
-                            borderRadius: '8px',
-                            border: '1px solid #ff6b6b'
-                        }}>
-                            <h4 style={{ fontSize: '0.9rem', color: '#ff6b6b', marginBottom: '0.5rem' }}>Configuración requerida</h4>
-                            <p style={{ fontSize: '0.85rem', color: '#ffb3b3', margin: 0, lineHeight: '1.5' }}>
-                                Para que el playground funcione, necesitas configurar tu API key de Ultravox en las variables de entorno de Vercel:
-                            </p>
-                            <ol style={{ fontSize: '0.85rem', color: '#ffb3b3', paddingLeft: '1.2rem', margin: '0.5rem 0 0 0', lineHeight: '1.6' }}>
-                                <li>Ve a <strong>app.ultravox.ai</strong> y obtén tu API key</li>
-                                <li>En Vercel, ve a Settings → Environment Variables</li>
-                                <li>Edita <code style={{ background: '#111', padding: '0.2rem 0.4rem', borderRadius: '4px' }}>VITE_ULTRAVOX_API_KEY</code></li>
-                                <li>Pega la API key de Ultravox (no la de Supabase)</li>
-                                <li>Guarda y redeploy</li>
-                            </ol>
-                        </div>
                     </div>
                 )}
             </div>
