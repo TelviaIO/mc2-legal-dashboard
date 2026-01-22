@@ -846,28 +846,29 @@ const Dashboard: React.FC = () => {
 
                 {/* Header & Filters */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                    <h2 className="text-gradient" style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>Panel de Control</h2>
+                    <h2 className="text-gradient" style={{ fontSize: 'clamp(1.2rem, 4vw, 1.5rem)', fontWeight: 700, margin: 0 }}>Panel de Control</h2>
 
-                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                         <a
                             href="/agents"
                             style={{
                                 background: 'var(--primary-gradient)',
                                 color: 'white',
                                 border: 'none',
-                                padding: '0.5rem 1.2rem',
+                                padding: 'clamp(0.4rem, 2vw, 0.5rem) clamp(0.8rem, 3vw, 1.2rem)',
                                 borderRadius: '8px',
-                                fontSize: '0.9rem',
+                                fontSize: 'clamp(0.8rem, 2vw, 0.9rem)',
                                 fontWeight: 600,
                                 textDecoration: 'none',
                                 cursor: 'pointer',
-                                display: 'inline-block'
+                                display: 'inline-block',
+                                whiteSpace: 'nowrap'
                             }}
                         >
                             Mis Agentes
                         </a>
 
-                        <div style={{ display: 'flex', gap: '0.5rem', background: '#1a1a1a', padding: '0.3rem', borderRadius: '8px' }}>
+                        <div style={{ display: 'flex', gap: '0.3rem', background: '#1a1a1a', padding: '0.3rem', borderRadius: '8px', flexWrap: 'wrap' }}>
                             {(['day', 'week', 'month', 'custom'] as const).map(f => (
                                 <button
                                     key={f}
@@ -876,9 +877,10 @@ const Dashboard: React.FC = () => {
                                         background: timeFilter === f ? 'var(--primary-gradient)' : 'transparent',
                                         color: 'white',
                                         border: 'none',
-                                        padding: '0.4rem 1rem',
+                                        padding: 'clamp(0.3rem, 1.5vw, 0.4rem) clamp(0.6rem, 2vw, 1rem)',
                                         borderRadius: '6px',
-                                        fontSize: '0.9rem'
+                                        fontSize: 'clamp(0.75rem, 2vw, 0.9rem)',
+                                        whiteSpace: 'nowrap'
                                     }}
                                 >
                                     {f === 'day' ? 'Hoy' : f === 'week' ? 'Semana' : f === 'month' ? 'Mes' : 'Personalizado'}
@@ -889,14 +891,14 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 {timeFilter === 'custom' && (
-                    <div style={{ display: 'flex', gap: '1rem', marginTop: '-1rem' }}>
-                        <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', background: '#111', border: '1px solid #333', color: 'white' }} />
-                        <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', background: '#111', border: '1px solid #333', color: 'white' }} />
+                    <div style={{ display: 'flex', gap: '1rem', marginTop: '-1rem', flexWrap: 'wrap' }}>
+                        <input type="date" value={customStart} onChange={e => setCustomStart(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', background: '#111', border: '1px solid #333', color: 'white', minWidth: '150px', flex: '1 1 auto' }} />
+                        <input type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)} style={{ padding: '0.5rem', borderRadius: '6px', background: '#111', border: '1px solid #333', color: 'white', minWidth: '150px', flex: '1 1 auto' }} />
                     </div>
                 )}
 
                 {/* KPI Section */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 200px), 1fr))', gap: 'clamp(1rem, 2vw, 1.5rem)' }}>
                     <KPICard
                         title="Llamadas Totales"
                         value={stats.totalCalls}
@@ -927,7 +929,7 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 {/* Outcome KPIs */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 150px), 1fr))', gap: 'clamp(0.75rem, 1.5vw, 1rem)' }}>
                     <KPICard title="No Reconoce" value={stats.noReconoce} isActive={selectedMetric === 'no_reconoce_deuda'} onClick={() => setSelectedMetric('no_reconoce_deuda')} />
                     <KPICard title="No Localizado" value={stats.noLocalizado} isActive={selectedMetric === 'no_localizado'} onClick={() => setSelectedMetric('no_localizado')} />
                     <KPICard title="Acepta Pagar" value={stats.aceptaPagar} isActive={selectedMetric === 'acepta_pagar'} onClick={() => setSelectedMetric('acepta_pagar')} />
@@ -967,7 +969,7 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 {/* Bottom Section: Chat & Documents */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '2rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 350px), 1fr))', gap: 'clamp(1rem, 3vw, 2rem)' }}>
                     <ChatSection />
                     <DocumentsSection />
                 </div>
@@ -976,38 +978,39 @@ const Dashboard: React.FC = () => {
                 <PendingTasksSection />
 
                 {/* Recent Calls Table */}
-                <div style={{ background: 'var(--card-bg)', padding: '1.5rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                        <h3 style={{ fontSize: '1rem', fontWeight: 600 }}>Llamadas Recientes</h3>
+                <div style={{ background: 'var(--card-bg)', padding: 'clamp(1rem, 2vw, 1.5rem)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                        <h3 style={{ fontSize: 'clamp(0.9rem, 2vw, 1rem)', fontWeight: 600, margin: 0 }}>Llamadas Recientes</h3>
                         <button
                             onClick={handleExportCSV}
                             style={{
                                 background: '#333',
                                 border: '1px solid #444',
                                 color: 'white',
-                                padding: '0.4rem 0.8rem',
+                                padding: 'clamp(0.3rem, 1.5vw, 0.4rem) clamp(0.6rem, 2vw, 0.8rem)',
                                 borderRadius: '6px',
-                                fontSize: '0.8rem',
+                                fontSize: 'clamp(0.75rem, 1.5vw, 0.8rem)',
                                 cursor: 'pointer',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '0.4rem'
+                                gap: '0.4rem',
+                                whiteSpace: 'nowrap'
                             }}
                         >
                             Exportar CSV
                         </button>
                     </div>
-                    <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
+                    <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'clamp(0.8rem, 1.5vw, 0.9rem)', minWidth: '600px' }}>
                             <thead>
                                 <tr style={{ borderBottom: '1px solid #333', color: '#888', textAlign: 'left' }}>
-                                    <th style={{ padding: '1rem' }}>Fecha</th>
-                                    <th style={{ padding: '1rem' }}>Duración</th>
-                                    <th style={{ padding: '1rem' }}>Estado</th>
-                                    <th style={{ padding: '1rem' }}>Teléfono</th>
-                                    <th style={{ padding: '1rem' }}>Resultado</th>
-                                    <th style={{ padding: '1rem' }}>Coste</th>
-                                    <th style={{ padding: '1rem' }}>Grabación</th>
+                                    <th style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', whiteSpace: 'nowrap' }}>Fecha</th>
+                                    <th style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', whiteSpace: 'nowrap' }}>Duración</th>
+                                    <th style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', whiteSpace: 'nowrap' }}>Estado</th>
+                                    <th style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', whiteSpace: 'nowrap' }}>Teléfono</th>
+                                    <th style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', whiteSpace: 'nowrap' }}>Resultado</th>
+                                    <th style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', whiteSpace: 'nowrap' }}>Coste</th>
+                                    <th style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', whiteSpace: 'nowrap' }}>Grabación</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1019,9 +1022,9 @@ const Dashboard: React.FC = () => {
                                         onMouseEnter={(e) => e.currentTarget.style.background = '#1f1f1f'}
                                         onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                                     >
-                                        <td style={{ padding: '1rem' }}>{new Date(call.created_at).toLocaleString()}</td>
-                                        <td style={{ padding: '1rem' }}>{call.t_duration}</td>
-                                        <td style={{ padding: '1rem' }}>
+                                        <td style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', whiteSpace: 'nowrap' }}>{new Date(call.created_at).toLocaleString()}</td>
+                                        <td style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)' }}>{call.t_duration}</td>
+                                        <td style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)' }}>
                                             <span style={{
                                                 padding: '0.2rem 0.6rem',
                                                 borderRadius: '12px',
@@ -1032,10 +1035,10 @@ const Dashboard: React.FC = () => {
                                                 {call.t_status === 'completed' ? 'Completada' : 'Perdida'}
                                             </span>
                                         </td>
-                                        <td style={{ padding: '1rem', color: '#ccc' }}>{call.phone_number || '-'}</td>
-                                        <td style={{ padding: '1rem', color: '#ccc' }}>{call.outcome?.replace(/_/g, ' ') || '-'}</td>
-                                        <td style={{ padding: '1rem' }}>{call.n_cost ? `${call.n_cost.toFixed(2)}€` : '0.00€'}</td>
-                                        <td style={{ padding: '1rem' }}>
+                                        <td style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', color: '#ccc' }}>{call.phone_number || '-'}</td>
+                                        <td style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', color: '#ccc' }}>{call.outcome?.replace(/_/g, ' ') || '-'}</td>
+                                        <td style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)', whiteSpace: 'nowrap' }}>{call.n_cost ? `${call.n_cost.toFixed(2)}€` : '0.00€'}</td>
+                                        <td style={{ padding: 'clamp(0.5rem, 1.5vw, 1rem)' }}>
                                             <div onClick={(e) => e.stopPropagation()}>
                                                 <AudioPlayer url={call.t_recording_url} />
                                             </div>

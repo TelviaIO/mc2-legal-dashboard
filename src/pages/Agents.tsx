@@ -107,10 +107,10 @@ const Agents: React.FC = () => {
 
     return (
         <DashboardLayout>
-            <div style={{ display: 'grid', gap: '2rem' }}>
+            <div style={{ display: 'grid', gap: 'clamp(1rem, 3vw, 2rem)' }}>
                 {/* Header */}
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h2 className="text-gradient" style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+                    <h2 className="text-gradient" style={{ fontSize: 'clamp(1.2rem, 4vw, 1.5rem)', fontWeight: 700, margin: 0 }}>
                         Mis Agentes Telvia
                     </h2>
                     <a
@@ -119,11 +119,12 @@ const Agents: React.FC = () => {
                             background: '#333',
                             color: 'white',
                             border: '1px solid #444',
-                            padding: '0.5rem 1.2rem',
+                            padding: 'clamp(0.4rem, 2vw, 0.5rem) clamp(0.8rem, 3vw, 1.2rem)',
                             borderRadius: '8px',
-                            fontSize: '0.9rem',
+                            fontSize: 'clamp(0.8rem, 2vw, 0.9rem)',
                             textDecoration: 'none',
-                            cursor: 'pointer'
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap'
                         }}
                     >
                         Volver al Panel
@@ -131,7 +132,7 @@ const Agents: React.FC = () => {
                 </div>
 
                 {/* Agents Grid */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '1.5rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 300px), 1fr))', gap: 'clamp(1rem, 2vw, 1.5rem)' }}>
                     {agents.map(agent => (
                         <div
                             key={agent.id}
@@ -187,11 +188,11 @@ const Agents: React.FC = () => {
                 {selectedAgent && (
                     <div style={{
                         background: 'var(--card-bg)',
-                        padding: '2rem',
+                        padding: 'clamp(1rem, 3vw, 2rem)',
                         borderRadius: '12px',
                         border: '1px solid var(--border-color)'
                     }}>
-                        <h3 style={{ fontSize: '1.2rem', fontWeight: 600, marginBottom: '1.5rem' }}>
+                        <h3 style={{ fontSize: 'clamp(1rem, 3vw, 1.2rem)', fontWeight: 600, marginBottom: 'clamp(1rem, 2vw, 1.5rem)' }}>
                             Probar Agente: {selectedAgent.name}
                         </h3>
 
