@@ -430,7 +430,14 @@ const DocumentsSection = () => {
     };
 
     useEffect(() => {
+        // Initial fetch
         fetchDocs();
+
+        // Auto-refresh every 10 seconds
+        const interval = setInterval(fetchDocs, 10000);
+
+        // Cleanup on unmount
+        return () => clearInterval(interval);
     }, []);
 
     const handleSave = async (e: React.FormEvent) => {
@@ -587,7 +594,14 @@ const PendingTasksSection = () => {
     };
 
     useEffect(() => {
+        // Initial fetch
         fetchTasks();
+
+        // Auto-refresh every 10 seconds
+        const interval = setInterval(fetchTasks, 10000);
+
+        // Cleanup on unmount
+        return () => clearInterval(interval);
     }, []);
 
     const handleAdd = async (category: 'mc2' | 'telvia', text: string) => {
@@ -674,7 +688,7 @@ const Dashboard: React.FC = () => {
     // UI State
     const [selectedMetric, setSelectedMetric] = useState<MetricType>('calls');
 
-    // Load Data
+    // Load Data with Auto-Refresh
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -701,7 +715,15 @@ const Dashboard: React.FC = () => {
                 console.error('Error fetching data:', err);
             }
         };
+
+        // Initial fetch
         fetchData();
+
+        // Auto-refresh every 10 seconds
+        const interval = setInterval(fetchData, 10000);
+
+        // Cleanup on unmount
+        return () => clearInterval(interval);
     }, []);
 
     // Filter Logic
