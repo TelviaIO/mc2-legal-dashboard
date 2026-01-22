@@ -2,7 +2,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { Resend } from 'resend';
 
 // Email recipients
-const RECIPIENTS = ['info@telvia.io', 'arodriguez@medinacuadros.es'];
+// In Resend Test Mode, you can only send to the email address you signed up with.
+// We limit this to info@telvia.io to ensure delivery during testing.
+const RECIPIENTS = ['info@telvia.io'];
 const APP_URL = 'https://mc2-legal-dashboard.vercel.app/';
 
 export default async function handler(
@@ -53,8 +55,9 @@ export default async function handler(
                 return res.status(400).json({ error: 'Invalid notification type' });
         }
 
+        // Use onboarding@resend.dev as it is the only allowed sender in Test Mode without domain verification
         const emailResponse = await resend.emails.send({
-            from: 'IA Prejudicial <noreply@notifications.resend.dev>',
+            from: 'IA Prejudicial <onboarding@resend.dev>',
             to: RECIPIENTS,
             subject: subject,
             html: html,
