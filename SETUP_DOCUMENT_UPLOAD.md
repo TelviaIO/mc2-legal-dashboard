@@ -1,13 +1,46 @@
 # Configuración de Subida de Documentos
 
-## Error Actual
+## Errores Comunes
+
+### Error 1: Bucket not found
 ```
 StorageApiError: Bucket not found
 ```
+**Solución**: El bucket "documents" no existe. Sigue los pasos de creación del bucket abajo.
 
-Este error ocurre porque el bucket de almacenamiento "documents" no existe en Supabase.
+### Error 2: Row-level security policy violation
+```
+StorageApiError: new row violates row-level security policy
+```
+**Solución**: Las políticas de seguridad están bloqueando la subida. Ejecuta el script `fix_storage_policies.sql` en el SQL Editor de Supabase.
 
-## Solución: Configurar Supabase Storage
+---
+
+## 🚀 Solución Rápida (3 pasos)
+
+### Paso 1: Crear el Bucket
+1. Ve a https://supabase.com/dashboard → Tu proyecto → **Storage**
+2. Click en **"New bucket"**
+3. Nombre: `documents`
+4. ✅ **Marca "Public bucket"**
+5. Click "Create bucket"
+
+### Paso 2: Configurar Políticas de Seguridad
+1. Ve a **SQL Editor** en Supabase
+2. Click en **"New query"**
+3. Copia y pega TODO el contenido del archivo **`fix_storage_policies.sql`**
+4. Click en **"Run"** o presiona F5
+
+### Paso 3: Ejecutar Migración de Base de Datos
+1. En el mismo **SQL Editor**
+2. Copia y pega el contenido de **`supabase_add_document_type.sql`**
+3. Click en **"Run"**
+
+**¡Listo!** Recarga la app y prueba subir un documento.
+
+---
+
+## Solución Detallada: Configurar Supabase Storage
 
 ### Opción 1: Desde el Dashboard de Supabase (Recomendado)
 
