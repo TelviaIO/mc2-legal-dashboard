@@ -12,7 +12,13 @@ StorageApiError: Bucket not found
 ```
 StorageApiError: new row violates row-level security policy
 ```
-**Solución**: Las políticas de seguridad están bloqueando la subida. Ejecuta el script `fix_storage_policies.sql` en el SQL Editor de Supabase.
+**Solución**: Las políticas de seguridad están bloqueando la subida. Sigue la guía en **`STORAGE_POLICIES_UI_GUIDE.md`** para configurar las políticas desde la interfaz de Supabase.
+
+### Error 3: must be owner of table objects
+```
+ERROR: 42501: must be owner of table objects
+```
+**Solución**: No puedes ejecutar el SQL directamente. Configura las políticas desde la interfaz del Dashboard. Ver **`STORAGE_POLICIES_UI_GUIDE.md`**.
 
 ---
 
@@ -26,15 +32,24 @@ StorageApiError: new row violates row-level security policy
 5. Click "Create bucket"
 
 ### Paso 2: Configurar Políticas de Seguridad
-1. Ve a **SQL Editor** en Supabase
-2. Click en **"New query"**
-3. Copia y pega TODO el contenido del archivo **`fix_storage_policies.sql`**
-4. Click en **"Run"** o presiona F5
+**⚠️ Importante**: NO uses el script SQL, configura desde la interfaz.
+
+**Sigue la guía completa en**: **`STORAGE_POLICIES_UI_GUIDE.md`**
+
+Resumen rápido:
+1. Storage → bucket "documents" → pestaña **"Policies"**
+2. Crear 4 políticas (SELECT, INSERT, UPDATE, DELETE) con expresión `true`
 
 ### Paso 3: Ejecutar Migración de Base de Datos
-1. En el mismo **SQL Editor**
-2. Copia y pega el contenido de **`supabase_add_document_type.sql`**
-3. Click en **"Run"**
+1. Ve a **SQL Editor** en Supabase
+2. Ejecuta este SQL:
+```sql
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS type text
+  CHECK (type IN ('url', 'file'))
+  DEFAULT 'url';
+
+UPDATE documents SET type = 'url' WHERE type IS NULL;
+```
 
 **¡Listo!** Recarga la app y prueba subir un documento.
 
