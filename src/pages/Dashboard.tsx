@@ -33,6 +33,7 @@ interface Document {
     name: string;
     url: string;
     created_at: string;
+    type?: 'url' | 'file'; // Type of document (URL link or uploaded file)
 }
 
 interface Task {
@@ -462,13 +463,16 @@ const ChatSection = () => {
     );
 };
 
-// Documents Component (Updated with Inline Delete)
+// Documents Component (Updated with Inline Delete and File Upload)
 const DocumentsSection = () => {
     const [documents, setDocuments] = useState<Document[]>([]);
     const [isAdding, setIsAdding] = useState(false);
     const [newDocName, setNewDocName] = useState('');
     const [newDocUrl, setNewDocUrl] = useState('');
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const [uploadMode, setUploadMode] = useState<'url' | 'file'>('url'); // Toggle between URL and file upload
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [isUploading, setIsUploading] = useState(false);
 
     const fetchDocs = async () => {
         const { data } = await supabase.from('documents').select('*').order('created_at', { ascending: false });
@@ -488,19 +492,66 @@ const DocumentsSection = () => {
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!newDocName.trim() || !newDocUrl.trim()) return;
 
-        const { error } = await supabase.from('documents').insert([
-            { name: newDocName, url: newDocUrl }
-        ]);
+        // Validation based on upload mode
+        if (!newDocName.trim()) return;
+        if (uploadMode === 'url' && !newDocUrl.trim()) return;
+        if (uploadMode === 'file' && !selectedFile) return;
 
-        if (error) {
-            console.error('Error saving document:', error);
-        } else {
-            setNewDocName('');
-            setNewDocUrl('');
-            setIsAdding(false);
-            fetchDocs();
+        setIsUploading(true);
+
+        try {
+            let finalUrl = newDocUrl;
+            let docType: 'url' | 'file' = uploadMode;
+
+            // If uploading a file, upload to Supabase Storage first
+            if (uploadMode === 'file' && selectedFile) {
+                const fileExt = selectedFile.name.split('.').pop();
+                const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+                const filePath = `documents/${fileName}`;
+
+                // Upload file to Supabase Storage
+                const { error: uploadError } = await supabase.storage
+                    .from('documents')
+                    .upload(filePath, selectedFile);
+
+                if (uploadError) {
+                    console.error('Error uploading file:', uploadError);
+                    alert('Error al subir el archivo. Por favor, intenta de nuevo.');
+                    setIsUploading(false);
+                    return;
+                }
+
+                // Get public URL for the uploaded file
+                const { data: urlData } = supabase.storage
+                    .from('documents')
+                    .getPublicUrl(filePath);
+
+                finalUrl = urlData.publicUrl;
+            }
+
+            // Insert document record into database
+            const { error } = await supabase.from('documents').insert([
+                { name: newDocName, url: finalUrl, type: docType }
+            ]);
+
+            if (error) {
+                console.error('Error saving document:', error);
+                alert('Error al guardar el documento. Por favor, intenta de nuevo.');
+            } else {
+                // Reset form
+                setNewDocName('');
+                setNewDocUrl('');
+                setSelectedFile(null);
+                setIsAdding(false);
+                setUploadMode('url');
+                fetchDocs();
+            }
+        } catch (err) {
+            console.error('Unexpected error:', err);
+            alert('Error inesperado. Por favor, intenta de nuevo.');
+        } finally {
+            setIsUploading(false);
         }
     };
 
@@ -508,13 +559,48 @@ const DocumentsSection = () => {
         e.stopPropagation();
         setConfirmDeleteId(null);
 
+        // Find the document to check if it's a file that needs to be deleted from storage
+        const docToDelete = documents.find(d => d.id === id);
+
         setDocuments(prev => prev.filter(d => d.id !== id));
+
+        // If it's a file type, extract the file path and delete from storage
+        if (docToDelete?.type === 'file' && docToDelete.url.includes('/documents/')) {
+            try {
+                const urlParts = docToDelete.url.split('/documents/');
+                const filePath = `documents/${urlParts[urlParts.length - 1]}`;
+
+                await supabase.storage
+                    .from('documents')
+                    .remove([filePath]);
+            } catch (err) {
+                console.error('Error deleting file from storage:', err);
+            }
+        }
+
+        // Delete the document record from database
         const { error } = await supabase.from('documents').delete().eq('id', id);
 
         if (error) {
             console.error('Error deleting doc:', error);
             fetchDocs();
         }
+    };
+
+    // Helper function to get file type label from URL
+    const getFileTypeLabel = (url: string): string => {
+        const extension = url.split('.').pop()?.toLowerCase() || '';
+        const extMap: Record<string, string> = {
+            'pdf': 'PDF',
+            'doc': 'DOC',
+            'docx': 'DOC',
+            'txt': 'TXT',
+            'jpg': 'JPG',
+            'jpeg': 'JPG',
+            'png': 'PNG',
+            'gif': 'GIF'
+        };
+        return extMap[extension] || 'DOC';
     };
 
     return (
@@ -548,7 +634,9 @@ const DocumentsSection = () => {
                             <a href={doc.url} target="_blank" rel="noreferrer" style={{
                                 display: 'flex', alignItems: 'center', gap: '0.8rem', flex: 1, textDecoration: 'none', color: 'white'
                             }}>
-                                <div style={{ width: '30px', height: '30px', background: 'var(--primary-gradient)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold', flexShrink: 0 }}>PDF</div>
+                                <div style={{ width: '30px', height: '30px', background: 'var(--primary-gradient)', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.65rem', fontWeight: 'bold', flexShrink: 0 }}>
+                                    {getFileTypeLabel(doc.url)}
+                                </div>
                                 <div style={{ flex: 1 }}>
                                     <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>{doc.name}</div>
                                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
@@ -589,6 +677,44 @@ const DocumentsSection = () => {
 
             {isAdding ? (
                 <form onSubmit={handleSave} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', borderTop: '1px solid #333', paddingTop: '1rem' }}>
+                    {/* Toggle between URL and File upload */}
+                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                        <button
+                            type="button"
+                            onClick={() => setUploadMode('url')}
+                            style={{
+                                flex: 1,
+                                padding: '0.5rem',
+                                borderRadius: '6px',
+                                border: 'none',
+                                background: uploadMode === 'url' ? 'var(--primary-gradient)' : '#1a1a1a',
+                                color: 'white',
+                                fontSize: '0.85rem',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            Enlace URL
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setUploadMode('file')}
+                            style={{
+                                flex: 1,
+                                padding: '0.5rem',
+                                borderRadius: '6px',
+                                border: 'none',
+                                background: uploadMode === 'file' ? 'var(--primary-gradient)' : '#1a1a1a',
+                                color: 'white',
+                                fontSize: '0.85rem',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            Subir Archivo
+                        </button>
+                    </div>
+
                     <input
                         placeholder="Nombre (ej. Guía)"
                         value={newDocName}
@@ -596,15 +722,76 @@ const DocumentsSection = () => {
                         style={{ padding: '0.6rem', borderRadius: '6px', background: '#0a0a0a', border: '1px solid #333', color: 'white', fontSize: '0.9rem' }}
                         autoFocus
                     />
-                    <input
-                        placeholder="URL (https://...)"
-                        value={newDocUrl}
-                        onChange={e => setNewDocUrl(e.target.value)}
-                        style={{ padding: '0.6rem', borderRadius: '6px', background: '#0a0a0a', border: '1px solid #333', color: 'white', fontSize: '0.9rem' }}
-                    />
+
+                    {uploadMode === 'url' ? (
+                        <input
+                            placeholder="URL (https://...)"
+                            value={newDocUrl}
+                            onChange={e => setNewDocUrl(e.target.value)}
+                            style={{ padding: '0.6rem', borderRadius: '6px', background: '#0a0a0a', border: '1px solid #333', color: 'white', fontSize: '0.9rem' }}
+                        />
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                            <input
+                                type="file"
+                                accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+                                onChange={e => setSelectedFile(e.target.files?.[0] || null)}
+                                style={{
+                                    padding: '0.6rem',
+                                    borderRadius: '6px',
+                                    background: '#0a0a0a',
+                                    border: '1px solid #333',
+                                    color: 'white',
+                                    fontSize: '0.9rem',
+                                    cursor: 'pointer'
+                                }}
+                            />
+                            {selectedFile && (
+                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', padding: '0 0.2rem' }}>
+                                    Archivo seleccionado: {selectedFile.name}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <button type="submit" className="bg-gradient" style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', fontSize: '0.9rem' }}>Guardar</button>
-                        <button type="button" onClick={() => setIsAdding(false)} style={{ flex: 1, background: '#333', border: 'none', color: 'white', borderRadius: '6px', fontSize: '0.9rem' }}>Cancelar</button>
+                        <button
+                            type="submit"
+                            className="bg-gradient"
+                            style={{
+                                flex: 1,
+                                padding: '0.5rem',
+                                borderRadius: '6px',
+                                fontSize: '0.9rem',
+                                opacity: isUploading ? 0.6 : 1,
+                                cursor: isUploading ? 'not-allowed' : 'pointer'
+                            }}
+                            disabled={isUploading}
+                        >
+                            {isUploading ? 'Guardando...' : 'Guardar'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setIsAdding(false);
+                                setUploadMode('url');
+                                setSelectedFile(null);
+                                setNewDocName('');
+                                setNewDocUrl('');
+                            }}
+                            style={{
+                                flex: 1,
+                                background: '#333',
+                                border: 'none',
+                                color: 'white',
+                                borderRadius: '6px',
+                                fontSize: '0.9rem',
+                                cursor: 'pointer'
+                            }}
+                            disabled={isUploading}
+                        >
+                            Cancelar
+                        </button>
                     </div>
                 </form>
             ) : (
@@ -620,7 +807,7 @@ const DocumentsSection = () => {
                         cursor: 'pointer'
                     }}
                 >
-                    + Añadir enlace a documento
+                    + Añadir documento
                 </button>
             )}
         </div>
