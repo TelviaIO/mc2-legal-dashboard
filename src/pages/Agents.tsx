@@ -105,8 +105,36 @@ const Agents: React.FC = () => {
         setCallStatus('');
     };
 
+    const [playingIndex, setPlayingIndex] = useState<number | null>(null);
+    const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    const togglePlay = (index: number, url?: string) => {
+        if (!url) {
+            console.warn('Audio URL not configured');
+            return;
+        }
+
+        if (playingIndex === index) {
+            audioRef.current?.pause();
+            setPlayingIndex(null);
+        } else {
+            if (audioRef.current) {
+                audioRef.current.src = url;
+                audioRef.current.play().catch(console.error);
+                setPlayingIndex(index);
+            }
+        }
+    };
+
+    const handleAudioEnded = () => {
+        setPlayingIndex(null);
+    };
+
     return (
         <DashboardLayout>
+            {/* Hidden Audio Element */}
+            <audio ref={audioRef} onEnded={handleAudioEnded} style={{ display: 'none' }} />
+
             <div style={{ display: 'grid', gap: 'clamp(1rem, 3vw, 2rem)' }}>
                 {/* Header */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
@@ -323,7 +351,7 @@ const Agents: React.FC = () => {
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 {[
-                                    { name: 'Carolina', provider: 'ElevenLabs', description: 'Cálida y natural', color: '#8e2de2' },
+                                    { name: 'Carolina', provider: 'ElevenLabs', description: 'Cálida y natural', color: '#8e2de2', url: 'https://www.learningcontainer.com/wp-content/uploads/2020/02/Sample-Audio-File-for-Testing.mp3' },
                                     { name: 'Abril', provider: 'Ultravox', description: 'Profesional y clara', color: '#4facfe' },
                                     { name: 'Marta', provider: 'Ultravox', description: 'Enérgica y cercana', color: '#00f2fe' },
                                     { name: 'Estrella', provider: 'Ultravox', description: 'Suave y sofisticada', color: '#fa709a' },
@@ -368,25 +396,33 @@ const Agents: React.FC = () => {
                                             padding: '0.5rem',
                                             borderRadius: '8px'
                                         }}>
-                                            <button style={{
-                                                background: voice.color,
-                                                border: 'none',
-                                                width: '24px',
-                                                height: '24px',
-                                                borderRadius: '50%',
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                cursor: 'pointer',
-                                                fontSize: '0.8rem',
-                                                color: 'white'
-                                            }}>
-                                                ▶
+                                            <button
+                                                onClick={() => togglePlay(index, voice.url)}
+                                                style={{
+                                                    background: voice.color,
+                                                    border: 'none',
+                                                    width: '24px',
+                                                    height: '24px',
+                                                    borderRadius: '50%',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    cursor: 'pointer',
+                                                    fontSize: '0.8rem',
+                                                    color: 'white'
+                                                }}>
+                                                {playingIndex === index ? '⏸' : '▶'}
                                             </button>
                                             <div style={{ flex: 1, height: '3px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', position: 'relative' }}>
-                                                <div style={{ width: '0%', height: '100%', background: voice.color, borderRadius: '2px' }} />
+                                                <div style={{
+                                                    width: playingIndex === index ? '100%' : '0%',
+                                                    height: '100%',
+                                                    background: voice.color,
+                                                    borderRadius: '2px',
+                                                    transition: playingIndex === index ? 'width 10s linear' : 'none'
+                                                }} />
                                             </div>
-                                            <span style={{ fontSize: '0.7rem', color: '#666' }}>0:00</span>
+                                            <span style={{ fontSize: '0.7rem', color: '#666' }}>{playingIndex === index ? '0:10' : '0:00'}</span>
                                         </div>
                                     </div>
                                 ))}
