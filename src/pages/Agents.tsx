@@ -351,12 +351,12 @@ const Agents: React.FC = () => {
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                                 {[
-                                    { name: 'Carolina', provider: 'ElevenLabs', description: 'Cálida y natural', color: '#8e2de2', url: 'https://www.learningcontainer.com/wp-content/uploads/2020/02/Sample-Audio-File-for-Testing.mp3' },
-                                    { name: 'Elvira', provider: 'Ultravox', description: 'Profesional y clara', color: '#4facfe' },
-                                    { name: 'Irene', provider: 'Ultravox', description: 'Enérgica y cercana', color: '#00f2fe' },
-                                    { name: 'Triana', provider: 'Ultravox', description: 'Suave y sofisticada', color: '#fa709a' },
-                                    { name: 'Vera', provider: 'Ultravox', description: 'Joven y dinámica', color: '#fee140' },
-                                    { name: 'Laia', provider: 'Ultravox', description: 'Madura y confiable', color: '#43e97b' }
+                                    { name: 'Carolina', provider: 'ElevenLabs', description: 'Cálida y natural', color: '#8e2de2', url: '/audio/carolina.wav' },
+                                    { name: 'Chrysia', provider: 'Ultravox', description: 'Profesional y clara', color: '#4facfe', url: '/audio/chrysia.wav' },
+                                    { name: 'Flavia', provider: 'Ultravox', description: 'Enérgica y cercana', color: '#00f2fe', url: '/audio/flavia.wav' },
+                                    { name: 'Monika', provider: 'Ultravox', description: 'Suave y sofisticada', color: '#fa709a', url: '/audio/monika.wav' },
+                                    { name: 'Victor', provider: 'Ultravox', description: 'Voz masculina profesional', color: '#43e97b', url: '/audio/victor.wav' }
+
                                 ].map((voice, index) => (
                                     <div key={index} style={{
                                         background: 'rgba(255, 255, 255, 0.05)',
