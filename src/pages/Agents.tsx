@@ -186,126 +186,212 @@ const Agents: React.FC = () => {
 
                 {/* Playground Section */}
                 {selectedAgent && (
-                    <div style={{
-                        background: 'var(--card-bg)',
-                        padding: 'clamp(1rem, 3vw, 2rem)',
-                        borderRadius: '12px',
-                        border: '1px solid var(--border-color)'
-                    }}>
-                        <h3 style={{ fontSize: 'clamp(1rem, 3vw, 1.2rem)', fontWeight: 600, marginBottom: 'clamp(1rem, 2vw, 1.5rem)' }}>
-                            Probar Agente: {selectedAgent.name}
-                        </h3>
-
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr minmax(300px, 350px)', gap: '2rem', alignItems: 'start' }}>
                         <div style={{
-                            background: '#1a1a1a',
-                            padding: '2rem',
+                            background: 'var(--card-bg)',
+                            padding: 'clamp(1rem, 3vw, 2rem)',
                             borderRadius: '12px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: '1.5rem',
-                            minHeight: '300px',
-                            justifyContent: 'center'
+                            border: '1px solid var(--border-color)'
                         }}>
-                            {!isCallActive ? (
-                                <>
-                                    <div style={{
-                                        width: '100px',
-                                        height: '100px',
-                                        borderRadius: '50%',
-                                        background: 'var(--primary-gradient)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: '2.5rem',
-                                        color: 'white'
-                                    }}>
-                                        🎙️
-                                    </div>
+                            <h3 style={{ fontSize: 'clamp(1rem, 3vw, 1.2rem)', fontWeight: 600, marginBottom: 'clamp(1rem, 2vw, 1.5rem)' }}>
+                                Probar Agente: {selectedAgent.name}
+                            </h3>
 
-                                    <div style={{ textAlign: 'center' }}>
-                                        <h4 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>
-                                            Listo para iniciar
-                                        </h4>
-                                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                                            Haz clic en el botón para probar el agente
-                                        </p>
-                                    </div>
+                            <div style={{
+                                background: '#1a1a1a',
+                                padding: '2rem',
+                                borderRadius: '12px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                alignItems: 'center',
+                                gap: '1.5rem',
+                                minHeight: '300px',
+                                justifyContent: 'center'
+                            }}>
+                                {!isCallActive ? (
+                                    <>
+                                        <div style={{
+                                            width: '100px',
+                                            height: '100px',
+                                            borderRadius: '50%',
+                                            background: 'var(--primary-gradient)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: '2.5rem',
+                                            color: 'white'
+                                        }}>
+                                            🎙️
+                                        </div>
 
-                                    <button
-                                        onClick={startCall}
-                                        className="bg-gradient"
-                                        style={{
-                                            padding: '1rem 2rem',
-                                            borderRadius: '12px',
-                                            fontSize: '1rem',
-                                            fontWeight: 600,
-                                            minWidth: '200px'
-                                        }}
-                                    >
-                                        Iniciar Llamada
-                                    </button>
-                                </>
-                            ) : (
-                                <>
-                                    <div style={{
-                                        width: '100px',
-                                        height: '100px',
-                                        borderRadius: '50%',
-                                        background: 'rgba(76, 175, 80, 0.2)',
-                                        border: '3px solid #4caf50',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: '2.5rem',
-                                        animation: 'pulse 2s infinite'
-                                    }}>
-                                        🎙️
-                                    </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <h4 style={{ fontSize: '1.1rem', marginBottom: '0.5rem' }}>
+                                                Listo para iniciar
+                                            </h4>
+                                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                                                Haz clic en el botón para probar el agente
+                                            </p>
+                                        </div>
 
-                                    <div style={{ textAlign: 'center' }}>
-                                        <h4 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: '#4caf50' }}>
-                                            Llamada en curso
-                                        </h4>
-                                        <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-                                            {callStatus}
-                                        </p>
-                                    </div>
+                                        <button
+                                            onClick={startCall}
+                                            className="bg-gradient"
+                                            style={{
+                                                padding: '1rem 2rem',
+                                                borderRadius: '12px',
+                                                fontSize: '1rem',
+                                                fontWeight: 600,
+                                                minWidth: '200px'
+                                            }}
+                                        >
+                                            Iniciar Llamada
+                                        </button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div style={{
+                                            width: '100px',
+                                            height: '100px',
+                                            borderRadius: '50%',
+                                            background: 'rgba(76, 175, 80, 0.2)',
+                                            border: '3px solid #4caf50',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: '2.5rem',
+                                            animation: 'pulse 2s infinite'
+                                        }}>
+                                            🎙️
+                                        </div>
 
-                                    <button
-                                        onClick={endCall}
-                                        style={{
-                                            background: '#f44336',
-                                            color: 'white',
-                                            border: 'none',
-                                            padding: '1rem 2rem',
-                                            borderRadius: '12px',
-                                            fontSize: '1rem',
-                                            fontWeight: 600,
-                                            cursor: 'pointer',
-                                            minWidth: '200px'
-                                        }}
-                                    >
-                                        Finalizar Llamada
-                                    </button>
-                                </>
-                            )}
+                                        <div style={{ textAlign: 'center' }}>
+                                            <h4 style={{ fontSize: '1.1rem', marginBottom: '0.5rem', color: '#4caf50' }}>
+                                                Llamada en curso
+                                            </h4>
+                                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                                                {callStatus}
+                                            </p>
+                                        </div>
+
+                                        <button
+                                            onClick={endCall}
+                                            style={{
+                                                background: '#f44336',
+                                                color: 'white',
+                                                border: 'none',
+                                                padding: '1rem 2rem',
+                                                borderRadius: '12px',
+                                                fontSize: '1rem',
+                                                fontWeight: 600,
+                                                cursor: 'pointer',
+                                                minWidth: '200px'
+                                            }}
+                                        >
+                                            Finalizar Llamada
+                                        </button>
+                                    </>
+                                )}
+                            </div>
+
+                            <div style={{
+                                marginTop: '1.5rem',
+                                padding: '1rem',
+                                background: '#111',
+                                borderRadius: '8px',
+                                border: '1px solid #333'
+                            }}>
+                                <h4 style={{ fontSize: '0.9rem', color: '#888', marginBottom: '0.5rem' }}>Información</h4>
+                                <ul style={{ fontSize: '0.85rem', color: '#666', paddingLeft: '1.2rem', margin: 0 }}>
+                                    <li>El agente está disponible 24/7 para realizar llamadas</li>
+                                    <li>Puedes probar el agente directamente desde aquí</li>
+                                </ul>
+                            </div>
                         </div>
 
+                        {/* Voices Section */}
                         <div style={{
-                            marginTop: '1.5rem',
-                            padding: '1rem',
-                            background: '#111',
-                            borderRadius: '8px',
-                            border: '1px solid #333'
+                            background: 'rgba(255, 255, 255, 0.03)',
+                            backdropFilter: 'blur(10px)',
+                            padding: '1.5rem',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            height: '100%'
                         }}>
-                            <h4 style={{ fontSize: '0.9rem', color: '#888', marginBottom: '0.5rem' }}>Información</h4>
-                            <ul style={{ fontSize: '0.85rem', color: '#666', paddingLeft: '1.2rem', margin: 0 }}>
-                                <li>El agente está disponible 24/7 para realizar llamadas</li>
-                                <li>Puedes probar el agente directamente desde aquí</li>
-                            </ul>
-                        </div>
+                            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '1.2rem' }}>🔊</span> Voces Disponibles (Mujer ES)
+                            </h3>
 
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                                {[
+                                    { name: 'Carolina', provider: 'ElevenLabs', description: 'Cálida y natural', color: '#8e2de2' },
+                                    { name: 'Abril', provider: 'Ultravox', description: 'Profesional y clara', color: '#4facfe' },
+                                    { name: 'Marta', provider: 'Ultravox', description: 'Enérgica y cercana', color: '#00f2fe' },
+                                    { name: 'Estrella', provider: 'Ultravox', description: 'Suave y sofisticada', color: '#fa709a' },
+                                    { name: 'Lucía', provider: 'ElevenLabs', description: 'Joven y dinámica', color: '#fee140' },
+                                    { name: 'Arancha', provider: 'Ultravox', description: 'Madura y confiable', color: '#43e97b' }
+                                ].map((voice, index) => (
+                                    <div key={index} style={{
+                                        background: 'rgba(255, 255, 255, 0.05)',
+                                        padding: '1rem',
+                                        borderRadius: '10px',
+                                        border: '1px solid rgba(255, 255, 255, 0.05)',
+                                        transition: 'transform 0.2s ease',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '0.8rem'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                            <div>
+                                                <h4 style={{ fontSize: '0.95rem', margin: 0, fontWeight: 600 }}>{voice.name}</h4>
+                                                <span style={{ fontSize: '0.75rem', color: '#888' }}>{voice.provider}</span>
+                                            </div>
+                                            <div style={{
+                                                fontSize: '0.7rem',
+                                                padding: '0.2rem 0.5rem',
+                                                borderRadius: '4px',
+                                                background: 'rgba(255,255,255,0.1)',
+                                                color: '#aaa'
+                                            }}>
+                                                ES-ES
+                                            </div>
+                                        </div>
+
+                                        <p style={{ fontSize: '0.8rem', color: '#bbb', margin: 0, fontStyle: 'italic' }}>
+                                            "{voice.description}"
+                                        </p>
+
+                                        <div style={{
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem',
+                                            background: 'rgba(0,0,0,0.3)',
+                                            padding: '0.5rem',
+                                            borderRadius: '8px'
+                                        }}>
+                                            <button style={{
+                                                background: voice.color,
+                                                border: 'none',
+                                                width: '24px',
+                                                height: '24px',
+                                                borderRadius: '50%',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                cursor: 'pointer',
+                                                fontSize: '0.8rem',
+                                                color: 'white'
+                                            }}>
+                                                ▶
+                                            </button>
+                                            <div style={{ flex: 1, height: '3px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', position: 'relative' }}>
+                                                <div style={{ width: '0%', height: '100%', background: voice.color, borderRadius: '2px' }} />
+                                            </div>
+                                            <span style={{ fontSize: '0.7rem', color: '#666' }}>0:00</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
@@ -320,6 +406,23 @@ const Agents: React.FC = () => {
                         transform: scale(1.05);
                         opacity: 0.8;
                     }
+                }
+                .text-gradient {
+                    background: linear-gradient(135deg, #fff 0%, #888 100%);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                }
+                .bg-gradient {
+                    background: var(--primary-gradient);
+                    color: white;
+                    border: none;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                }
+                .bg-gradient:hover {
+                    opacity: 0.9;
+                    transform: translateY(-1px);
+                    box-shadow: 0 4px 12px rgba(142, 45, 226, 0.3);
                 }
             `}</style>
         </DashboardLayout>

@@ -23,10 +23,10 @@ Este plan describe los pasos para habilitar notificaciones por correo electróni
 - [x] Modificar `ChatSection` -> `handleSend`: Llamar a la API tras enviar mensaje (si es de usuario).
 
 ### 4. Configuración de Variables de Entorno
-- [ ] Asegurar que el usuario configure `RESEND_API_KEY` en su entorno local (`.env`) y en Vercel.
-- [ ] Definir el correo de origen y destino (ej. `onboarding@resend.dev` para pruebas o dominio verificado).
+- [x] Asegurar que el usuario configure `RESEND_API_KEY` en su entorno local (`.env`) y en Vercel.
+- [x] Definir el correo de origen y destino (ej. `onboarding@resend.dev` para pruebas o dominio verificado).
 
 ### 5. Verificación
-- [ ] Simular la creación de una tarea.
-- [ ] Simular el envío de feedback.
-- [ ] Confirmar recepción del correo.
+- [x] Simular la creación de una tarea.
+- [x] Simular el envío de feedback.
+- [x] Confirmar recepción del correo.
