@@ -1091,6 +1091,18 @@ const Dashboard: React.FC = () => {
         setVisibleRows(10); // Reset pagination on filter change
     }, [allCalls, timeFilter, customStart, customEnd, agentFilter]);
 
+    // Metric-based Filtering
+    const callsToShow = useMemo(() => {
+        if (selectedMetric === 'calls' || selectedMetric === 'cost' || selectedMetric === 'recovered_debt') {
+            return filteredCalls;
+        }
+        if (selectedMetric === 'answered') {
+            return filteredCalls.filter(c => c.t_status === 'completed');
+        }
+        // Map other metrics to outcome
+        return filteredCalls.filter(c => c.outcome === selectedMetric);
+    }, [filteredCalls, selectedMetric]);
+
     // Pagination & Detail State
     const [visibleRows, setVisibleRows] = useState(10);
     const [selectedCall, setSelectedCall] = useState<Call | null>(null);
@@ -1100,12 +1112,12 @@ const Dashboard: React.FC = () => {
     };
 
     const handleShowAll = () => {
-        setVisibleRows(filteredCalls.length);
+        setVisibleRows(callsToShow.length);
     };
 
     const handleExportCSV = () => {
         const headers = ['Fecha', 'Duración', 'Estado', 'Teléfono', 'Resultado', 'Coste', 'Grabación', 'Resumen'];
-        const rows = filteredCalls.map(call => [
+        const rows = callsToShow.map(call => [
             new Date(call.created_at).toLocaleString(),
             call.t_duration,
             call.t_status === 'completed' ? 'Completada' : 'Perdida',
@@ -1413,7 +1425,7 @@ const Dashboard: React.FC = () => {
                                 </tr>
                             </thead>
                             <tbody>
-                                {filteredCalls.slice(0, visibleRows).map(call => (
+                                {callsToShow.slice(0, visibleRows).map(call => (
                                     <tr
                                         key={call.id}
                                         onClick={() => setSelectedCall(call)}
