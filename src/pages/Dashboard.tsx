@@ -1001,16 +1001,20 @@ const Dashboard: React.FC = () => {
 
     // Unique Agents for Filter
     const uniqueAgents = useMemo(() => {
-        const agents = new Set<string>();
+        const counts: Record<string, number> = {};
         allCalls.forEach(c => {
             if (c.agent_id &&
                 c.agent_id.trim() !== '' &&
                 c.agent_id !== 'null' &&
                 c.agent_id !== 'undefined') {
-                agents.add(c.agent_id);
+                counts[c.agent_id] = (counts[c.agent_id] || 0) + 1;
             }
         });
-        return Array.from(agents);
+
+        // Only show agents with 5 or more calls to exclude demo/test agents
+        return Object.entries(counts)
+            .filter(([_, count]) => count >= 5)
+            .map(([agentId]) => agentId);
     }, [allCalls]);
 
     // UI State
