@@ -44,7 +44,7 @@ interface Task {
     completed_at?: string;
 }
 
-type TimeFilter = 'day' | 'week' | 'month' | 'custom';
+type TimeFilter = 'all' | 'day' | 'week' | 'month' | 'custom';
 type MetricType = 'calls' | 'answered' | 'cost' | 'recovered_debt' | 'no_reconoce_deuda' | 'no_localizado' | 'acepta_pagar' | 'acepta_pagar_parte' | 'enfadado' | 'cuelga_antes';
 
 // Components
@@ -994,7 +994,7 @@ const Dashboard: React.FC = () => {
 
 
     // Filter State
-    const [timeFilter, setTimeFilter] = useState<TimeFilter>('week');
+    const [timeFilter, setTimeFilter] = useState<TimeFilter>('all');
     const [agentFilter, setAgentFilter] = useState<string>('all');
     const [customStart, setCustomStart] = useState('');
     const [customEnd, setCustomEnd] = useState('');
@@ -1003,7 +1003,12 @@ const Dashboard: React.FC = () => {
     const uniqueAgents = useMemo(() => {
         const agents = new Set<string>();
         allCalls.forEach(c => {
-            if (c.agent_id) agents.add(c.agent_id);
+            if (c.agent_id &&
+                c.agent_id.trim() !== '' &&
+                c.agent_id !== 'null' &&
+                c.agent_id !== 'undefined') {
+                agents.add(c.agent_id);
+            }
         });
         return Array.from(agents);
     }, [allCalls]);
@@ -1054,7 +1059,9 @@ const Dashboard: React.FC = () => {
         const now = new Date();
         let start = new Date();
 
-        if (timeFilter === 'day') {
+        if (timeFilter === 'all') {
+            start = new Date(0); // Beginning of time
+        } else if (timeFilter === 'day') {
             start.setHours(0, 0, 0, 0);
         } else if (timeFilter === 'week') {
             start.setDate(now.getDate() - 7);
@@ -1247,16 +1254,21 @@ const Dashboard: React.FC = () => {
                                 }}
                             >
                                 <option value="all">Todos los agentes</option>
-                                {uniqueAgents.map(agentId => (
-                                    <option key={agentId} value={agentId}>
-                                        Agente: {agentId.substring(0, 8)}...
-                                    </option>
-                                ))}
+                                {uniqueAgents.map(agentId => {
+                                    const agentName = agentId === '36b1efef-2ffa-4a92-9c02-af3d2d0689d3' ? 'Agente Outbound V2' :
+                                        agentId === 'c3ab9f32-5c23-4335-a988-701d51f501cc' ? 'Agente Inbound V1' :
+                                            `Agente: ${agentId.substring(0, 8)}...`;
+                                    return (
+                                        <option key={agentId} value={agentId}>
+                                            {agentName}
+                                        </option>
+                                    );
+                                })}
                             </select>
                         </div>
 
                         <div style={{ display: 'flex', gap: '0.3rem', background: '#1a1a1a', padding: '0.3rem', borderRadius: '8px', flexWrap: 'wrap' }}>
-                            {(['day', 'week', 'month', 'custom'] as const).map(f => (
+                            {(['all', 'day', 'week', 'month', 'custom'] as const).map(f => (
                                 <button
                                     key={f}
                                     onClick={() => setTimeFilter(f)}
@@ -1270,7 +1282,7 @@ const Dashboard: React.FC = () => {
                                         whiteSpace: 'nowrap'
                                     }}
                                 >
-                                    {f === 'day' ? 'Hoy' : f === 'week' ? 'Semana' : f === 'month' ? 'Mes' : 'Personalizado'}
+                                    {f === 'all' ? 'Todo' : f === 'day' ? 'Hoy' : f === 'week' ? 'Semana' : f === 'month' ? 'Mes' : 'Personalizado'}
                                 </button>
                             ))}
                         </div>

@@ -231,23 +231,7 @@ const Agents: React.FC = () => {
                                 Probar Agente: {selectedAgent.name}
                             </h3>
 
-                            {selectedAgent.name.includes('Inbound') && (
-                                <div style={{
-                                    background: 'rgba(255, 193, 7, 0.1)',
-                                    border: '1px solid rgba(255, 193, 7, 0.2)',
-                                    padding: '0.8rem',
-                                    borderRadius: '8px',
-                                    marginBottom: '1.5rem',
-                                    fontSize: '0.85rem',
-                                    color: '#ffc107',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '0.6rem'
-                                }}>
-                                    <span style={{ fontSize: '1.2rem' }}>⚠️</span>
-                                    <span>Advertencia: Si lo pruebas desde aquí, no podrá obtener tus datos. Habla con él solo para test general.</span>
-                                </div>
-                            )}
+
 
                             <div style={{
                                 background: '#1a1a1a',
