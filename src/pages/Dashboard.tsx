@@ -995,8 +995,18 @@ const Dashboard: React.FC = () => {
 
     // Filter State
     const [timeFilter, setTimeFilter] = useState<TimeFilter>('week');
+    const [agentFilter, setAgentFilter] = useState<string>('all');
     const [customStart, setCustomStart] = useState('');
     const [customEnd, setCustomEnd] = useState('');
+
+    // Unique Agents for Filter
+    const uniqueAgents = useMemo(() => {
+        const agents = new Set<string>();
+        allCalls.forEach(c => {
+            if (c.agent_id) agents.add(c.agent_id);
+        });
+        return Array.from(agents);
+    }, [allCalls]);
 
     // UI State
     const [selectedMetric, setSelectedMetric] = useState<MetricType>('calls');
@@ -1056,17 +1066,23 @@ const Dashboard: React.FC = () => {
 
         const filtered = allCalls.filter(c => {
             const callDate = new Date(c.created_at);
+            let dateMatch = false;
             if (timeFilter === 'custom' && customEnd) {
                 const end = new Date(customEnd);
                 end.setHours(23, 59, 59, 999);
-                return callDate >= start && callDate <= end;
+                dateMatch = callDate >= start && callDate <= end;
+            } else {
+                dateMatch = callDate >= start;
             }
-            return callDate >= start;
+
+            const agentMatch = agentFilter === 'all' || c.agent_id === agentFilter;
+
+            return dateMatch && agentMatch;
         });
 
         setFilteredCalls(filtered);
         setVisibleRows(10); // Reset pagination on filter change
-    }, [allCalls, timeFilter, customStart, customEnd]);
+    }, [allCalls, timeFilter, customStart, customEnd, agentFilter]);
 
     // Pagination & Detail State
     const [visibleRows, setVisibleRows] = useState(10);
@@ -1214,6 +1230,30 @@ const Dashboard: React.FC = () => {
                         >
                             Mis Agentes
                         </a>
+
+                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                            <select
+                                value={agentFilter}
+                                onChange={(e) => setAgentFilter(e.target.value)}
+                                style={{
+                                    background: '#1a1a1a',
+                                    color: 'white',
+                                    border: '1px solid #333',
+                                    padding: '0.4rem 0.8rem',
+                                    borderRadius: '8px',
+                                    fontSize: '0.85rem',
+                                    outline: 'none',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                <option value="all">Todos los agentes</option>
+                                {uniqueAgents.map(agentId => (
+                                    <option key={agentId} value={agentId}>
+                                        Agente: {agentId.substring(0, 8)}...
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
 
                         <div style={{ display: 'flex', gap: '0.3rem', background: '#1a1a1a', padding: '0.3rem', borderRadius: '8px', flexWrap: 'wrap' }}>
                             {(['day', 'week', 'month', 'custom'] as const).map(f => (
