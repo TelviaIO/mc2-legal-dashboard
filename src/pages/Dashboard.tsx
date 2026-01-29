@@ -229,10 +229,14 @@ const ChatSection = () => {
     }, []);
 
     useEffect(() => {
-        // Scroll to bottom of container only, avoiding window scroll
+        // Smart scroll: Only scroll to bottom if user is already near the bottom
         if (messagesContainerRef.current) {
-            const { scrollHeight, clientHeight } = messagesContainerRef.current;
-            messagesContainerRef.current.scrollTop = scrollHeight - clientHeight;
+            const { scrollHeight, clientHeight, scrollTop } = messagesContainerRef.current;
+            const isAtBottom = scrollHeight - clientHeight <= scrollTop + 100; // 100px threshold
+
+            if (isAtBottom) {
+                messagesContainerRef.current.scrollTop = scrollHeight - clientHeight;
+            }
         }
     }, [messages]);
 
