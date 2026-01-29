@@ -45,7 +45,7 @@ interface Task {
 }
 
 type TimeFilter = 'all' | 'day' | 'week' | 'month' | 'custom';
-type MetricType = 'calls' | 'answered' | 'cost' | 'recovered_debt' | 'no_reconoce_deuda' | 'no_localizado' | 'acepta_pagar' | 'acepta_pagar_parte' | 'enfadado' | 'cuelga_antes';
+type MetricType = 'calls' | 'answered' | 'cost' | 'duration' | 'recovered_debt' | 'no_reconoce_deuda' | 'no_localizado' | 'acepta_pagar' | 'acepta_pagar_parte' | 'enfadado' | 'cuelga_antes';
 
 // Components
 
@@ -1148,12 +1148,40 @@ const Dashboard: React.FC = () => {
     };
 
 
+    // Duration Parser Utility
+    const parseDurationToSeconds = (duration: string | null | undefined): number => {
+        if (!duration) return 0;
+
+        // Handle "2m 15s" format
+        const minMatch = duration.match(/(\d+)m/);
+        const secMatch = duration.match(/(\d+)s/);
+
+        let seconds = 0;
+        if (minMatch) seconds += parseInt(minMatch[1]) * 60;
+        if (secMatch) seconds += parseInt(secMatch[1]);
+
+        if (seconds > 0) return seconds;
+
+        // Handle "MM:SS" format
+        const parts = duration.split(':');
+        if (parts.length === 2) {
+            return (parseInt(parts[0]) * 60) + parseInt(parts[1]);
+        }
+
+        return 0;
+    };
+
     // KPIs & Chart Data Calculation
     const stats = useMemo(() => {
         const totalCalls = filteredCalls.length;
         const answeredCalls = filteredCalls.filter(c => c.t_status === 'completed').length;
         const totalCost = filteredCalls.reduce((acc, curr) => acc + (curr.n_cost || 0), 0);
         const totalRecovered = 0; // Placeholder as requested
+
+        const totalSeconds = filteredCalls.reduce((acc, curr) => acc + parseDurationToSeconds(curr.t_duration), 0);
+        const totalMinutes = totalSeconds / 60;
+        const avgSeconds = totalCalls > 0 ? totalSeconds / totalCalls : 0;
+        const avgMinutes = avgSeconds / 60;
 
         // Outcome KPIs
         const noReconoce = filteredCalls.filter(c => c.outcome === 'no_reconoce_deuda').length;
@@ -1163,7 +1191,20 @@ const Dashboard: React.FC = () => {
         const enfadado = filteredCalls.filter(c => c.outcome === 'enfadado').length;
         const cuelgaAntes = filteredCalls.filter(c => c.outcome === 'cuelga_antes').length;
 
-        return { totalCalls, answeredCalls, totalCost, totalRecovered, noReconoce, noLocalizado, aceptaPagar, pagoParcial, enfadado, cuelgaAntes };
+        return {
+            totalCalls,
+            answeredCalls,
+            totalCost,
+            totalRecovered,
+            totalMinutes,
+            avgMinutes,
+            noReconoce,
+            noLocalizado,
+            aceptaPagar,
+            pagoParcial,
+            enfadado,
+            cuelgaAntes
+        };
     }, [filteredCalls]);
 
     const chartData = useMemo(() => {
@@ -1180,24 +1221,24 @@ const Dashboard: React.FC = () => {
                 timestamp = d.setMinutes(0, 0, 0); // Normalize to hour
             }
 
-            let val = 0;
-            if (selectedMetric === 'calls') val = 1;
-            else if (selectedMetric === 'answered') val = call.t_status === 'completed' ? 1 : 0;
-            else if (selectedMetric === 'cost') val = call.n_cost || 0;
-            else if (selectedMetric === 'recovered_debt') val = 0; // Placeholder
-            else if (selectedMetric === 'no_reconoce_deuda') val = call.outcome === 'no_reconoce_deuda' ? 1 : 0;
-            else if (selectedMetric === 'no_localizado') val = call.outcome === 'no_localizado' ? 1 : 0;
-            else if (selectedMetric === 'acepta_pagar') val = call.outcome === 'acepta_pagar' ? 1 : 0;
-            else if (selectedMetric === 'acepta_pagar_parte') val = call.outcome === 'acepta_pagar_parte' ? 1 : 0;
-            else if (selectedMetric === 'enfadado') val = call.outcome === 'enfadado' ? 1 : 0;
-            else if (selectedMetric === 'cuelga_antes') val = call.outcome === 'cuelga_antes' ? 1 : 0;
-
-            if (val > 0) {
-                if (!grouped[key]) {
-                    grouped[key] = { value: 0, timestamp };
-                }
-                grouped[key].value += val;
+            let value = 1; // Default: count calls
+            if (selectedMetric === 'cost') {
+                value = call.n_cost || 0;
+            } else if (selectedMetric === 'recovered_debt') {
+                value = 0;
+            } else if (selectedMetric === 'duration') {
+                value = parseDurationToSeconds(call.t_duration) / 60;
+            } else if (selectedMetric !== 'calls') {
+                // For other metrics, only count if it matches the specific metric
+                const isAnswered = selectedMetric === 'answered' && call.t_status === 'completed';
+                const isOutcome = call.outcome === selectedMetric;
+                value = (isAnswered || isOutcome) ? 1 : 0;
             }
+
+            if (!grouped[key]) {
+                grouped[key] = { value: 0, timestamp };
+            }
+            grouped[key].value += value;
         });
 
         // Convert to array and sort chronologically (oldest to newest)
@@ -1214,6 +1255,7 @@ const Dashboard: React.FC = () => {
             calls: 'Volumen de Llamadas',
             answered: 'Llamadas Contestadas',
             cost: 'Gasto Total',
+            duration: 'Minutos Hablados',
             recovered_debt: 'Deuda Recuperada',
             no_reconoce_deuda: 'No Reconoce Deuda',
             no_localizado: 'No Localizado',
@@ -1332,6 +1374,13 @@ const Dashboard: React.FC = () => {
                         type="money"
                         isActive={selectedMetric === 'cost'}
                         onClick={() => setSelectedMetric('cost')}
+                    />
+                    <KPICard
+                        title="Minutos Hablados"
+                        value={`${stats.totalMinutes.toFixed(1)}m`}
+                        subValue={`${stats.avgMinutes.toFixed(2)}m/llamada`}
+                        isActive={selectedMetric === 'duration'}
+                        onClick={() => setSelectedMetric('duration')}
                     />
                     <KPICard
                         title="Deuda Recuperada"
