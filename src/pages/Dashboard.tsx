@@ -402,9 +402,10 @@ const ChatSection = () => {
             }
 
             fetchMessages();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error uploading image:', error);
-            alert('Error al subir la imagen. Asegúrate de que el bucket "chat-images" existe en Supabase y tiene permisos públicos.');
+            const errorMessage = error?.message || error?.error_description || 'Error desconocido';
+            alert(`Error al subir la imagen: ${errorMessage}\n\nDetalles técnicos: ${JSON.stringify(error)}`);
         } finally {
             setUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
