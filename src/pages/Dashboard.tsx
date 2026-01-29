@@ -1001,20 +1001,19 @@ const Dashboard: React.FC = () => {
 
     // Unique Agents for Filter
     const uniqueAgents = useMemo(() => {
-        const counts: Record<string, number> = {};
+        const verifiedAgentIds = [
+            '36b1efef-2ffa-4a92-9c02-af3d2d0689d3', // Outbound_Maria
+            'c3ab9f32-5c23-4335-a988-701d51f501cc'  // Inbound
+        ];
+
+        const agentsFound = new Set<string>();
         allCalls.forEach(c => {
-            if (c.agent_id &&
-                c.agent_id.trim() !== '' &&
-                c.agent_id !== 'null' &&
-                c.agent_id !== 'undefined') {
-                counts[c.agent_id] = (counts[c.agent_id] || 0) + 1;
+            if (c.agent_id && verifiedAgentIds.includes(c.agent_id)) {
+                agentsFound.add(c.agent_id);
             }
         });
 
-        // Only show agents with 5 or more calls to exclude demo/test agents
-        return Object.entries(counts)
-            .filter(([_, count]) => count >= 5)
-            .map(([agentId]) => agentId);
+        return Array.from(agentsFound);
     }, [allCalls]);
 
     // UI State
@@ -1271,8 +1270,8 @@ const Dashboard: React.FC = () => {
                             >
                                 <option value="all">Todos los agentes</option>
                                 {uniqueAgents.map(agentId => {
-                                    const agentName = agentId === '36b1efef-2ffa-4a92-9c02-af3d2d0689d3' ? 'Agente Outbound V2' :
-                                        agentId === 'c3ab9f32-5c23-4335-a988-701d51f501cc' ? 'Agente Inbound V1' :
+                                    const agentName = agentId === '36b1efef-2ffa-4a92-9c02-af3d2d0689d3' ? 'Outbound_Maria' :
+                                        agentId === 'c3ab9f32-5c23-4335-a988-701d51f501cc' ? 'Inbound' :
                                             `Agente: ${agentId.substring(0, 8)}...`;
                                     return (
                                         <option key={agentId} value={agentId}>

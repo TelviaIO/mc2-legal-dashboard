@@ -20,13 +20,13 @@ const Agents: React.FC = () => {
     const agents: Agent[] = [
         {
             id: '36b1efef-2ffa-4a92-9c02-af3d2d0689d3',
-            name: 'Agente Outbound V2',
+            name: 'Outbound_Maria',
             description: 'Agente especializado en gestión de deudas y cobros',
             status: 'active'
         },
         {
             id: 'c3ab9f32-5c23-4335-a988-701d51f501cc',
-            name: 'Agente Inbound V1',
+            name: 'Inbound',
             description: 'Agente especializado en atención de llamadas entrantes y resolución de dudas',
             status: 'active'
         }
