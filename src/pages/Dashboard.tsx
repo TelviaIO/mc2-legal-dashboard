@@ -349,7 +349,8 @@ const ChatSection = () => {
         try {
             setUploading(true);
             const fileExt = file.name.split('.').pop();
-            const fileName = `${Math.random()}.${fileExt}`;
+            const timestamp = new Date().getTime();
+            const fileName = `${timestamp}.${fileExt}`;
             const filePath = `${fileName}`;
             const currentAuthor = authorName || 'Usuario';
 
