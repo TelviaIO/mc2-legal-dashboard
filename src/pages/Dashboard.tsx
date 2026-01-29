@@ -26,6 +26,7 @@ interface Message {
     text: string;
     created_at: string;
     author_name?: string;
+    image_url?: string;
 }
 
 interface Document {
@@ -214,7 +215,9 @@ const ChatSection = () => {
     const [authorName, setAuthorName] = useState(() => localStorage.getItem('chat_author_name') || '');
     const [editingId, setEditingId] = useState<string | null>(null);
     const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
     const messagesContainerRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         if (authorName) {
@@ -335,6 +338,78 @@ const ChatSection = () => {
         }
     };
 
+    const handleImageClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            setUploading(true);
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Math.random()}.${fileExt}`;
+            const filePath = `${fileName}`;
+            const currentAuthor = authorName || 'Usuario';
+
+            // Upload to Supabase Storage
+            const { error: uploadError } = await supabase.storage
+                .from('chat-images')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            // Get Public URL
+            const { data: { publicUrl } } = supabase.storage
+                .from('chat-images')
+                .getPublicUrl(filePath);
+
+            // Optimistic update for image
+            const tempId = Date.now().toString();
+            const optimisticMsg: Message = {
+                id: tempId,
+                sender: 'user',
+                text: '',
+                image_url: publicUrl,
+                created_at: new Date().toISOString(),
+                author_name: currentAuthor
+            };
+            setMessages(prev => [...prev, optimisticMsg]);
+
+            // Insert message with image
+            const { data, error: insertError } = await supabase
+                .from('messages')
+                .insert([{
+                    text: '',
+                    sender: 'user',
+                    author_name: currentAuthor,
+                    image_url: publicUrl
+                }])
+                .select();
+
+            if (insertError) {
+                setMessages(prev => prev.filter(m => m.id !== tempId));
+                throw insertError;
+            } else if (data && data.length > 0) {
+                setMessages(prev => prev.map(m => m.id === tempId ? (data[0] as Message) : m));
+                // Send notification for image
+                sendNotification('feedback_created', {
+                    text: '[Imagen enviada]',
+                    author_name: currentAuthor
+                }).catch(err => console.error('Error sending notification:', err));
+            }
+
+            fetchMessages();
+        } catch (error) {
+            console.error('Error uploading image:', error);
+            alert('Error al subir la imagen. Asegúrate de que el bucket "chat-images" existe en Supabase y tiene permisos públicos.');
+        } finally {
+            setUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
     const performDelete = async (id: string) => {
         setConfirmDeleteId(null);
         setMessages(prev => prev.filter(m => m.id !== id));
@@ -393,14 +468,28 @@ const ChatSection = () => {
                             <div style={{
                                 background: msg.sender === 'user' ? 'var(--primary-gradient)' : '#2a2a2a',
                                 color: 'white',
-                                padding: '0.8rem 1rem',
+                                padding: msg.image_url ? '0.4rem' : '0.8rem 1rem',
                                 borderRadius: '12px',
                                 borderBottomRightRadius: msg.sender === 'user' ? '2px' : '12px',
                                 borderBottomLeftRadius: msg.sender === 'agency' ? '2px' : '12px',
                                 fontSize: '0.9rem',
-                                position: 'relative'
+                                position: 'relative',
+                                overflow: 'hidden'
                             }}>
-                                <p>{msg.text}</p>
+                                {msg.image_url && (
+                                    <img
+                                        src={msg.image_url}
+                                        alt="Chat content"
+                                        style={{
+                                            maxWidth: '100%',
+                                            borderRadius: '8px',
+                                            display: 'block',
+                                            cursor: 'pointer'
+                                        }}
+                                        onClick={() => window.open(msg.image_url, '_blank')}
+                                    />
+                                )}
+                                {msg.text && <p style={{ margin: msg.image_url ? '0.5rem 0.4rem 0.2rem 0.4rem' : 0 }}>{msg.text}</p>}
                             </div>
 
                             {msg.sender === 'user' && (
@@ -449,7 +538,8 @@ const ChatSection = () => {
                     <input
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder={editingId ? "Editando mensaje..." : "Escribe un mensaje..."}
+                        placeholder={uploading ? "Subiendo imagen..." : (editingId ? "Editando mensaje..." : "Escribe un mensaje...")}
+                        disabled={uploading}
                         style={{
                             flex: 1,
                             padding: '0.8rem',
@@ -457,10 +547,54 @@ const ChatSection = () => {
                             background: '#0a0a0a',
                             border: '1px solid var(--border-color)',
                             color: 'white',
-                            outline: 'none'
+                            outline: 'none',
+                            opacity: uploading ? 0.7 : 1
                         }}
                     />
-                    <button type="submit" className="bg-gradient" style={{ borderRadius: '8px' }}>{editingId ? 'Actualizar' : 'Enviar'}</button>
+                    <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        style={{ display: 'none' }}
+                        accept="image/*"
+                    />
+                    <button
+                        type="button"
+                        onClick={handleImageClick}
+                        disabled={uploading}
+                        style={{
+                            background: '#2a2a2a',
+                            border: '1px solid #444',
+                            borderRadius: '8px',
+                            width: '45px',
+                            height: '45px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '1.2rem',
+                            transition: 'all 0.2s',
+                            opacity: uploading ? 0.5 : 1
+                        }}
+                        title="Subir imagen"
+                        onMouseEnter={(e) => e.currentTarget.style.background = '#333'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = '#2a2a2a'}
+                    >
+                        📷
+                    </button>
+                    <button
+                        type="submit"
+                        className="bg-gradient"
+                        disabled={uploading}
+                        style={{
+                            borderRadius: '8px',
+                            height: '45px',
+                            padding: '0 1.2rem',
+                            opacity: uploading ? 0.5 : 1
+                        }}
+                    >
+                        {editingId ? 'Actualizar' : 'Enviar'}
+                    </button>
                 </div>
             </form>
         </div>
