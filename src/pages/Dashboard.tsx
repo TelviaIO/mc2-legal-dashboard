@@ -999,14 +999,27 @@ const Dashboard: React.FC = () => {
     const [customStart, setCustomStart] = useState('');
     const [customEnd, setCustomEnd] = useState('');
 
-    // Unique Agents for Filter
     const uniqueAgents = useMemo(() => {
-        // IDs verificados del dashboard de Retell del usuario para que siempre aparezcan
-        return [
+        // IDs verificados que siempre queremos mostrar
+        const verifiedAgentIds = [
             '36b1efef-2ffa-4a92-9c02-af3d2d0689d3', // Outbound_Maria
             'c3ab9f32-5c23-4335-a988-701d51f501cc'  // Inbound
         ];
-    }, []);
+
+        const agentsFound = new Set<string>(verifiedAgentIds);
+
+        // Añadir cualquier otro ID que aparezca en las llamadas reales
+        allCalls.forEach(c => {
+            if (c.agent_id &&
+                c.agent_id.trim() !== '' &&
+                c.agent_id !== 'null' &&
+                c.agent_id !== 'undefined') {
+                agentsFound.add(c.agent_id);
+            }
+        });
+
+        return Array.from(agentsFound);
+    }, [allCalls]);
 
     // UI State
     const [selectedMetric, setSelectedMetric] = useState<MetricType>('calls');
@@ -1287,35 +1300,6 @@ const Dashboard: React.FC = () => {
                             Mis Agentes
                         </a>
 
-                        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                            <select
-                                value={agentFilter}
-                                onChange={(e) => setAgentFilter(e.target.value)}
-                                style={{
-                                    background: '#1a1a1a',
-                                    color: 'white',
-                                    border: '1px solid #333',
-                                    padding: '0.4rem 0.8rem',
-                                    borderRadius: '8px',
-                                    fontSize: '0.85rem',
-                                    outline: 'none',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                <option value="all">Todos los agentes</option>
-                                {uniqueAgents.map(agentId => {
-                                    const agentName = agentId === '36b1efef-2ffa-4a92-9c02-af3d2d0689d3' ? 'Outbound_Maria' :
-                                        agentId === 'c3ab9f32-5c23-4335-a988-701d51f501cc' ? 'Inbound' :
-                                            `Agente: ${agentId.substring(0, 8)}...`;
-                                    return (
-                                        <option key={agentId} value={agentId}>
-                                            {agentName}
-                                        </option>
-                                    );
-                                })}
-                            </select>
-                        </div>
-
                         <div style={{ display: 'flex', gap: '0.3rem', background: '#1a1a1a', padding: '0.3rem', borderRadius: '8px', flexWrap: 'wrap' }}>
                             {(['all', 'day', 'week', 'month', 'custom'] as const).map(f => (
                                 <button
@@ -1434,26 +1418,59 @@ const Dashboard: React.FC = () => {
 
                 {/* Recent Calls Table */}
                 <div style={{ background: 'var(--card-bg)', padding: 'clamp(1rem, 2vw, 1.5rem)', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
                         <h3 style={{ fontSize: 'clamp(0.9rem, 2vw, 1rem)', fontWeight: 600, margin: 0 }}>Llamadas Recientes</h3>
-                        <button
-                            onClick={handleExportCSV}
-                            style={{
-                                background: '#333',
-                                border: '1px solid #444',
-                                color: 'white',
-                                padding: 'clamp(0.3rem, 1.5vw, 0.4rem) clamp(0.6rem, 2vw, 0.8rem)',
-                                borderRadius: '6px',
-                                fontSize: 'clamp(0.75rem, 1.5vw, 0.8rem)',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '0.4rem',
-                                whiteSpace: 'nowrap'
-                            }}
-                        >
-                            Exportar CSV
-                        </button>
+
+                        <div style={{ display: 'flex', gap: '0.8rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                <span style={{ fontSize: '0.8rem', color: '#888' }}>Agente:</span>
+                                <select
+                                    value={agentFilter}
+                                    onChange={(e) => setAgentFilter(e.target.value)}
+                                    style={{
+                                        background: '#1a1a1a',
+                                        color: 'white',
+                                        border: '1px solid #333',
+                                        padding: '0.3rem 0.6rem',
+                                        borderRadius: '6px',
+                                        fontSize: '0.8rem',
+                                        outline: 'none',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    <option value="all">Todos</option>
+                                    {uniqueAgents.map(agentId => {
+                                        const agentName = agentId === '36b1efef-2ffa-4a92-9c02-af3d2d0689d3' ? 'Outbound_Maria' :
+                                            agentId === 'c3ab9f32-5c23-4335-a988-701d51f501cc' ? 'Inbound' :
+                                                `ID: ${agentId.substring(0, 6)}...`;
+                                        return (
+                                            <option key={agentId} value={agentId}>
+                                                {agentName}
+                                            </option>
+                                        );
+                                    })}
+                                </select>
+                            </div>
+
+                            <button
+                                onClick={handleExportCSV}
+                                style={{
+                                    background: '#333',
+                                    border: '1px solid #444',
+                                    color: 'white',
+                                    padding: 'clamp(0.3rem, 1.5vw, 0.4rem) clamp(0.6rem, 2vw, 0.8rem)',
+                                    borderRadius: '6px',
+                                    fontSize: 'clamp(0.75rem, 1.5vw, 0.8rem)',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    whiteSpace: 'nowrap'
+                                }}
+                            >
+                                Exportar CSV
+                            </button>
+                        </div>
                     </div>
                     <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'clamp(0.8rem, 1.5vw, 0.9rem)', minWidth: '600px' }}>
