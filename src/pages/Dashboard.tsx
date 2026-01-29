@@ -998,23 +998,27 @@ const Dashboard: React.FC = () => {
     const [agentFilter, setAgentFilter] = useState<string>('all');
     const [customStart, setCustomStart] = useState('');
     const [customEnd, setCustomEnd] = useState('');
+    // Normalización de agentes
+    const normalizeAgentId = (id: string | null | undefined): string => {
+        if (!id) return 'unknown';
+        const raw = id.toLowerCase().trim();
+        if (raw.includes('inbound') || raw === 'c3ab9f32-5c23-4335-a988-701d51f501cc') return 'c3ab9f32-5c23-4335-a988-701d51f501cc';
+        if (raw.includes('outbound_maria') || raw === '36b1efef-2ffa-4a92-9c02-af3d2d0689d3') return '36b1efef-2ffa-4a92-9c02-af3d2d0689d3';
+        return id;
+    };
 
     const uniqueAgents = useMemo(() => {
-        // IDs verificados que siempre queremos mostrar
-        const verifiedAgentIds = [
+        const verifiedIds = [
             '36b1efef-2ffa-4a92-9c02-af3d2d0689d3', // Outbound_Maria
             'c3ab9f32-5c23-4335-a988-701d51f501cc'  // Inbound
         ];
 
-        const agentsFound = new Set<string>(verifiedAgentIds);
+        const agentsFound = new Set<string>(verifiedIds);
 
-        // Añadir cualquier otro ID que aparezca en las llamadas reales
         allCalls.forEach(c => {
-            if (c.agent_id &&
-                c.agent_id.trim() !== '' &&
-                c.agent_id !== 'null' &&
-                c.agent_id !== 'undefined') {
-                agentsFound.add(c.agent_id);
+            const normalized = normalizeAgentId(c.agent_id);
+            if (normalized !== 'unknown' && normalized.length > 5) {
+                agentsFound.add(normalized);
             }
         });
 
@@ -1090,7 +1094,7 @@ const Dashboard: React.FC = () => {
                 dateMatch = callDate >= start;
             }
 
-            const agentMatch = agentFilter === 'all' || c.agent_id === agentFilter;
+            const agentMatch = agentFilter === 'all' || normalizeAgentId(c.agent_id) === agentFilter;
 
             return dateMatch && agentMatch;
         });
@@ -1299,6 +1303,36 @@ const Dashboard: React.FC = () => {
                         >
                             Mis Agentes
                         </a>
+
+                        <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                            <select
+                                value={agentFilter}
+                                onChange={(e) => setAgentFilter(e.target.value)}
+                                style={{
+                                    background: '#1a1a1a',
+                                    color: 'white',
+                                    border: '1px solid #333',
+                                    padding: '0.4rem 0.8rem',
+                                    borderRadius: '8px',
+                                    fontSize: '0.85rem',
+                                    outline: 'none',
+                                    cursor: 'pointer',
+                                    minWidth: '150px'
+                                }}
+                            >
+                                <option value="all">Todos los agentes</option>
+                                {uniqueAgents.map(agentId => {
+                                    const agentName = agentId === '36b1efef-2ffa-4a92-9c02-af3d2d0689d3' ? 'Outbound_Maria' :
+                                        agentId === 'c3ab9f32-5c23-4335-a988-701d51f501cc' ? 'Inbound' :
+                                            `Agente: ${agentId.substring(0, 8)}...`;
+                                    return (
+                                        <option key={agentId} value={agentId}>
+                                            {agentName}
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                        </div>
 
                         <div style={{ display: 'flex', gap: '0.3rem', background: '#1a1a1a', padding: '0.3rem', borderRadius: '8px', flexWrap: 'wrap' }}>
                             {(['all', 'day', 'week', 'month', 'custom'] as const).map(f => (
@@ -1606,6 +1640,14 @@ const Dashboard: React.FC = () => {
                                 <div>
                                     <span style={{ fontSize: '0.8rem', color: '#888' }}>Resultado</span>
                                     <div style={{ fontSize: '0.9rem', fontWeight: 500 }}>{selectedCall.outcome?.replace(/_/g, ' ') || '-'}</div>
+                                </div>
+                                <div>
+                                    <span style={{ fontSize: '0.8rem', color: '#888' }}>Agente</span>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: 500, color: 'var(--primary-color)' }}>
+                                        {normalizeAgentId(selectedCall.agent_id) === '36b1efef-2ffa-4a92-9c02-af3d2d0689d3' ? 'Outbound_Maria' :
+                                            normalizeAgentId(selectedCall.agent_id) === 'c3ab9f32-5c23-4335-a988-701d51f501cc' ? 'Inbound' :
+                                                selectedCall.agent_id || '-'}
+                                    </div>
                                 </div>
                             </div>
 
