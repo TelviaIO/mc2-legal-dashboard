@@ -1001,20 +1001,12 @@ const Dashboard: React.FC = () => {
 
     // Unique Agents for Filter
     const uniqueAgents = useMemo(() => {
-        const verifiedAgentIds = [
+        // IDs verificados del dashboard de Retell del usuario para que siempre aparezcan
+        return [
             '36b1efef-2ffa-4a92-9c02-af3d2d0689d3', // Outbound_Maria
             'c3ab9f32-5c23-4335-a988-701d51f501cc'  // Inbound
         ];
-
-        const agentsFound = new Set<string>();
-        allCalls.forEach(c => {
-            if (c.agent_id && verifiedAgentIds.includes(c.agent_id)) {
-                agentsFound.add(c.agent_id);
-            }
-        });
-
-        return Array.from(agentsFound);
-    }, [allCalls]);
+    }, []);
 
     // UI State
     const [selectedMetric, setSelectedMetric] = useState<MetricType>('calls');
